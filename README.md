@@ -17,9 +17,9 @@ This is a demonstration of a FastMCP server that provides simple API tools and r
 
 ### Installation
 
-1. Clone this repository:
+1. Create a new directory for your project and navigate into it:
    ```
-   git clone https://github.com/yourusername/mcp-demo-server.git
+   mkdir mcp-demo-server
    cd mcp-demo-server
    ```
 
@@ -31,18 +31,36 @@ This is a demonstration of a FastMCP server that provides simple API tools and r
 
 3. Install the required dependencies:
    ```
-   pip install -r requirements.txt
+   pip install mcp
    ```
-
-4. Set up your environment variables:
-   - Copy `.env.example` to `.env`
-   - Update the values in `.env` as needed
 
 ### Running the Server
 
-To start the server, run:
+To start the server directly:
 ```
 python server.py
+```
+
+To test with MCP Inspector:
+```
+npx @modelcontextprotocol/inspector "venv/Scripts/python.exe" "server.py"
+```
+
+To use with Claude Desktop, add this to your `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "Demo": {
+      "command": "C:/Users/user/path/to/your/project/venv/Scripts/python.exe",
+      "args": [
+        "C:\\Users\\user\\path\\to\\your\\project\\server.py"
+      ],
+      "env": {
+        "PYTHONPATH": "C:/Users/user/path/to/your/project"
+      }
+    }
+  }
+}
 ```
 
 ## API Reference
