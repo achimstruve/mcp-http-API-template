@@ -12,56 +12,131 @@ This is a demonstration of a FastMCP server that provides simple API tools and r
 
 ### Prerequisites
 
-- Python 3.6+
-- pip (Python package installer)
+- Python 3.10+
+- uv (Ultra-fast Python package installer and resolver)
 
 ### Installation
 
-1. Create a new directory for your project and navigate into it:
+1. Install uv if you haven't already:
+   ```
+   pip install uv
+   ```
+
+2. Clone or create your project directory and navigate into it:
    ```
    mkdir mcp-demo-server
    cd mcp-demo-server
    ```
 
-2. Create and activate a virtual environment:
+3. Install dependencies using uv:
    ```
-   python -m venv venv
-   venv\Scripts\activate
+   uv sync
    ```
 
-3. Install the required dependencies:
-   ```
-   pip install mcp
-   ```
+   This will create a virtual environment and install all dependencies defined in `pyproject.toml`.
 
 ### Running the Server
 
 To start the server directly:
 ```
-python server.py
+uv run python server.py
 ```
 
 To test with MCP Inspector:
 ```
-npx @modelcontextprotocol/inspector "venv/Scripts/python.exe" "server.py"
+npx @modelcontextprotocol/inspector "uv" "run" "python" "server.py"
 ```
 
-To use with Claude Desktop, add this to your `claude_desktop_config.json`:
+### Claude Desktop Integration
+
+For reliable Claude Desktop integration, this project uses a batch file approach:
+
+#### Method 1: Batch File Approach (Recommended)
+
+1. The project includes `run_mcp_server.bat` which handles all path resolution
+2. Add this to your `claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
     "Demo": {
-      "command": "C:/Users/user/path/to/your/project/venv/Scripts/python.exe",
-      "args": [
-        "C:\\Users\\user\\path\\to\\your\\project\\server.py"
-      ],
-      "env": {
-        "PYTHONPATH": "C:/Users/user/path/to/your/project"
-      }
+      "command": "C:\\path\\to\\your\\project\\run_mcp_server.bat"
     }
   }
 }
 ```
+
+**Replace** `C:\\path\\to\\your\\project\\` with your actual project directory path.
+
+#### Method 2: Direct UV Command (Alternative)
+
+If you prefer the direct approach:
+
+```json
+{
+  "mcpServers": {
+    "Demo": {
+      "command": "C:\\Users\\[username]\\.local\\bin\\uv.exe",
+      "args": [
+        "run",
+        "python",
+        "server.py"
+      ],
+      "cwd": "C:\\path\\to\\your\\project"
+    }
+  }
+}
+```
+
+**Note**: Replace paths with your actual paths. Find your uv path with `where.exe uv`.
+
+### Why Batch File Approach?
+
+The batch file approach is more reliable because:
+- **Path Resolution**: Handles complex Windows paths better
+- **Environment Setup**: Ensures correct working directory and environment
+- **Compatibility**: Works better with Node.js process spawning in Claude Desktop
+- **Debugging**: Easier to troubleshoot path and environment issues
+
+### Troubleshooting
+
+#### Common Issues and Solutions
+
+**1. "spawn uv ENOENT" errors:**
+- **Cause**: Claude Desktop can't find the uv executable
+- **Solution**: Use the batch file approach (Method 1) or verify your uv path with `where.exe uv`
+
+**2. "Server disconnected" errors:**
+- **Cause**: Dependencies not installed or Python version mismatch
+- **Solution**: Run `uv sync` in your project directory
+
+**3. "ModuleNotFoundError: No module named 'mcp'":**
+- **Cause**: Dependencies not installed in the correct environment
+- **Solution**: Ensure you've run `uv sync` and the batch file is using the correct paths
+
+**4. Server shows as "failed" in Claude Desktop:**
+- **Test locally first**: Run `uv run python server.py` to verify it works
+- **Check paths**: Ensure all paths in your configuration are correct
+- **Use batch file**: Switch to the batch file approach for more reliability
+
+#### Testing Your Setup
+
+1. **Test locally:**
+   ```powershell
+   uv run python server.py
+   ```
+
+2. **Test batch file:**
+   ```powershell
+   .\run_mcp_server.bat
+   ```
+
+3. **Test with MCP Inspector:**
+   ```powershell
+   npx @modelcontextprotocol/inspector "uv" "run" "python" "server.py"
+   ```
+
+If all three work locally, the issue is likely in your Claude Desktop configuration.
 
 ## API Reference
 
