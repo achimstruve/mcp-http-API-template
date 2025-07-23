@@ -47,96 +47,17 @@ To test with MCP Inspector:
 npx @modelcontextprotocol/inspector "uv" "run" "python" "server.py"
 ```
 
-### Claude Desktop Integration
+### Local Development
 
-For reliable Claude Desktop integration, this project uses a batch file approach:
+For local development and testing:
 
-#### Method 1: Batch File Approach (Recommended)
+```bash
+# Run the server in stdio mode (default)
+uv run python server.py
 
-1. The project includes `run_mcp_server.bat` which handles all path resolution
-2. Add this to your `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "Demo": {
-      "command": "C:\\path\\to\\your\\project\\run_mcp_server.bat"
-    }
-  }
-}
+# Test with MCP Inspector
+npx @modelcontextprotocol/inspector "uv" "run" "python" "server.py"
 ```
-
-**Replace** `C:\\path\\to\\your\\project\\` with your actual project directory path.
-
-#### Method 2: Direct UV Command (Alternative)
-
-If you prefer the direct approach:
-
-```json
-{
-  "mcpServers": {
-    "Demo": {
-      "command": "C:\\Users\\[username]\\.local\\bin\\uv.exe",
-      "args": [
-        "run",
-        "python",
-        "server.py"
-      ],
-      "cwd": "C:\\path\\to\\your\\project"
-    }
-  }
-}
-```
-
-**Note**: Replace paths with your actual paths. Find your uv path with `where.exe uv`.
-
-### Why Batch File Approach?
-
-The batch file approach is more reliable because:
-- **Path Resolution**: Handles complex Windows paths better
-- **Environment Setup**: Ensures correct working directory and environment
-- **Compatibility**: Works better with Node.js process spawning in Claude Desktop
-- **Debugging**: Easier to troubleshoot path and environment issues
-
-### Troubleshooting
-
-#### Common Issues and Solutions
-
-**1. "spawn uv ENOENT" errors:**
-- **Cause**: Claude Desktop can't find the uv executable
-- **Solution**: Use the batch file approach (Method 1) or verify your uv path with `where.exe uv`
-
-**2. "Server disconnected" errors:**
-- **Cause**: Dependencies not installed or Python version mismatch
-- **Solution**: Run `uv sync` in your project directory
-
-**3. "ModuleNotFoundError: No module named 'mcp'":**
-- **Cause**: Dependencies not installed in the correct environment
-- **Solution**: Ensure you've run `uv sync` and the batch file is using the correct paths
-
-**4. Server shows as "failed" in Claude Desktop:**
-- **Test locally first**: Run `uv run python server.py` to verify it works
-- **Check paths**: Ensure all paths in your configuration are correct
-- **Use batch file**: Switch to the batch file approach for more reliability
-
-#### Testing Your Setup
-
-1. **Test locally:**
-   ```powershell
-   uv run python server.py
-   ```
-
-2. **Test batch file:**
-   ```powershell
-   .\run_mcp_server.bat
-   ```
-
-3. **Test with MCP Inspector:**
-   ```powershell
-   npx @modelcontextprotocol/inspector "uv" "run" "python" "server.py"
-   ```
-
-If all three work locally, the issue is likely in your Claude Desktop configuration.
 
 ## API Reference
 
@@ -167,6 +88,94 @@ word = secret_word()  # Returns "ApplesAreRed998"
 Returns a personalized greeting for the provided name.
 
 Example: `greeting://John` returns "Hello, John!"
+
+## Web Deployment
+
+This MCP server can be deployed as a web service accessible to AI agents over HTTP.
+
+### Environment Variables
+
+Configure the server using these environment variables:
+- `MCP_TRANSPORT`: Transport type (`stdio` for local, `sse` for web)
+- `MCP_HOST`: Host to bind to (default: `0.0.0.0`)
+- `MCP_PORT`: Port to listen on (default: `8899` for HTTP, `8443` for HTTPS)
+
+**SSL/HTTPS Configuration:**
+- `SSL_ENABLED`: Enable HTTPS (`false` by default)
+- `SSL_CERT_PATH`: Path to SSL certificate (default: `/etc/ssl/certs/cert.pem`)
+- `SSL_KEY_PATH`: Path to SSL private key (default: `/etc/ssl/private/key.pem`)
+- `DOMAIN_NAME`: Your domain name for automatic Let's Encrypt certificates
+
+### Docker Deployment
+
+1. **Build the Docker image:**
+   ```bash
+   ./scripts/build.sh
+   ```
+
+2. **Run locally with Docker:**
+   ```bash
+   ./scripts/run-local.sh
+   ```
+   The server will be available at `http://localhost:8899/sse`
+
+### GCP VM Deployment
+
+1. **Prerequisites:**
+   - Install [gcloud CLI](https://cloud.google.com/sdk/docs/install)
+   - Authenticate: `gcloud auth login`
+   - Set project: `gcloud config set project YOUR_PROJECT_ID`
+   - Enable Container Registry: `gcloud services enable containerregistry.googleapis.com`
+
+2. **Deploy to GCP:**
+   
+   **HTTP deployment:**
+   ```bash
+   export GCP_PROJECT_ID=your-project-id
+   ./scripts/deploy-gcp.sh
+   ```
+   
+   **HTTPS deployment with Let's Encrypt (recommended):**
+   ```bash
+   export GCP_PROJECT_ID=your-project-id
+   export DOMAIN_NAME=your-domain.com
+   export SSL_EMAIL=admin@your-domain.com
+   ./scripts/deploy-gcp.sh
+   ```
+   
+   **HTTPS with self-signed certificate (testing only):**
+   ```bash
+   export GCP_PROJECT_ID=your-project-id
+   export USE_SELF_SIGNED=true
+   ./scripts/deploy-gcp.sh
+   ```
+
+3. **Access the server:**
+   - **HTTP**: `http://EXTERNAL_IP:8899/sse`
+   - **HTTPS with domain**: `https://your-domain.com:8443/sse`
+   - **HTTPS with IP** (self-signed): `https://EXTERNAL_IP:8443/sse` ⚠️ Browser warnings
+
+### Testing the Web API
+
+Test the deployed server:
+```bash
+# Test SSE endpoint (HTTP)
+curl http://YOUR_SERVER:8899/sse
+
+# Test SSE endpoint (HTTPS)
+curl https://your-domain.com:8443/sse
+
+# The endpoint streams Server-Sent Events for MCP communication
+```
+
+### Security Considerations
+
+⚠️ **Important**: For production use, consider additional security measures:
+- **HTTPS**: Use the built-in SSL support with domain names
+- **Authentication**: Add authentication middleware (OAuth2, JWT, API keys)
+- **Rate limiting**: Implement rate limiting for API endpoints
+- **Firewall**: Restrict access to specific IP ranges if needed
+- **Monitoring**: Add logging and monitoring for security events
 
 ## Development
 
