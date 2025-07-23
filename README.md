@@ -78,7 +78,7 @@ Returns the secret word.
 
 Example usage:
 ```python
-word = secret_word()  # Returns "ApplesAreRed998"
+word = secret_word()  # Returns "OVPostWebExperts"
 ```
 
 ### Resources
