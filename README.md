@@ -177,6 +177,152 @@ curl https://your-domain.com:8443/sse
 - **Firewall**: Restrict access to specific IP ranges if needed
 - **Monitoring**: Add logging and monitoring for security events
 
+## Connecting MCP Clients
+
+### Method 1: Direct SSE Connection (Recommended for Web-Deployed Servers)
+
+Claude Code and other MCP clients that support SSE transport can connect directly to your deployed server:
+
+```bash
+# For Claude Code
+claude mcp add demo-server --transport sse https://YOUR_SERVER:8443/sse
+
+# Example with your deployed server
+claude mcp add demo-server --transport sse https://34.145.94.60:8443/sse
+```
+
+**Note**: This method requires MCP clients that support SSE transport. Claude Desktop currently only supports stdio transport for local servers.
+
+### Method 2: Local Server Connection
+
+For clients that only support stdio transport (like Claude Desktop):
+
+#### Option A: Run Server Locally
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/mcp-python-testing.git
+cd mcp-python-testing
+
+# Install dependencies
+uv sync
+
+# For Claude Code
+claude mcp add demo-server -- uv run python server.py
+
+# For Claude Desktop, add to claude_desktop_config.json:
+{
+  "mcpServers": {
+    "demo-server": {
+      "command": "uv",
+      "args": ["run", "python", "/path/to/server.py"]
+    }
+  }
+}
+```
+
+#### Option B: Local Proxy to Web Server (Advanced)
+
+Create a local proxy that bridges stdio to your web-deployed server:
+
+1. **Create proxy.py:**
+```python
+#!/usr/bin/env python3
+import sys
+import json
+import asyncio
+import aiohttp
+from aiohttp_sse_client import client as sse_client
+
+SERVER_URL = "https://34.145.94.60:8443/sse"
+
+async def stdio_to_sse_proxy():
+    # Connect to SSE endpoint
+    async with aiohttp.ClientSession() as session:
+        async with sse_client.EventSource(
+            SERVER_URL, 
+            session=session,
+            ssl=False  # Set to True for production with valid certs
+        ) as event_source:
+            
+            # Handle bidirectional communication
+            async def read_stdin():
+                while True:
+                    line = await asyncio.get_event_loop().run_in_executor(
+                        None, sys.stdin.readline
+                    )
+                    if not line:
+                        break
+                    # Send to SSE server
+                    await session.post(SERVER_URL, data=line)
+            
+            async def read_sse():
+                async for event in event_source:
+                    # Forward SSE events to stdout
+                    sys.stdout.write(json.dumps({
+                        "event": event.type,
+                        "data": event.data
+                    }) + "\n")
+                    sys.stdout.flush()
+            
+            # Run both tasks concurrently
+            await asyncio.gather(read_stdin(), read_sse())
+
+if __name__ == "__main__":
+    asyncio.run(stdio_to_sse_proxy())
+```
+
+2. **Install proxy dependencies:**
+```bash
+pip install aiohttp aiohttp-sse-client
+```
+
+3. **Configure Claude Desktop:**
+```json
+{
+  "mcpServers": {
+    "demo-server-remote": {
+      "command": "python",
+      "args": ["/path/to/proxy.py"]
+    }
+  }
+}
+```
+
+### Testing Your Connection
+
+#### Test with MCP Inspector (Local)
+```bash
+npx @modelcontextprotocol/inspector "uv" "run" "python" "server.py"
+```
+
+#### Test SSE Endpoint (Web)
+```bash
+# Basic connectivity test
+curl -k https://YOUR_SERVER:8443/sse
+
+# Stream events (shows SSE communication)
+curl -k -N https://YOUR_SERVER:8443/sse
+```
+
+### Available Tools and Resources
+
+Once connected, you'll have access to:
+
+**Tools:**
+- `add(a, b)` - Adds two numbers
+- `secret_word()` - Returns the secret word "OVPostWebExperts"
+
+**Resources:**
+- `greeting://{name}` - Returns personalized greetings
+
+### Troubleshooting
+
+1. **Connection timeouts**: Ensure firewall rules allow port 8443
+2. **SSL certificate warnings**: Expected with self-signed certificates
+3. **"Transport not supported"**: Client doesn't support SSE; use local mode
+4. **Authentication errors**: This template doesn't include auth; add as needed
+
 ## Development
 
 To contribute to this project:
