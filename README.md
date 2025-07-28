@@ -106,6 +106,10 @@ Configure the server using these environment variables:
 - `SSL_KEY_PATH`: Path to SSL private key (default: `/etc/ssl/private/key.pem`)
 - `DOMAIN_NAME`: Your domain name for automatic Let's Encrypt certificates
 
+**Authentication Configuration:**
+- `AUTH_ENABLED`: Enable API key authentication (`false` by default)
+- `API_KEYS`: API keys in format `"user1:key1,user2:key2"` (uses demo key if empty)
+
 ### Docker Deployment
 
 1. **Build the Docker image:**
@@ -168,11 +172,54 @@ curl https://your-domain.com:8443/sse
 # The endpoint streams Server-Sent Events for MCP communication
 ```
 
+### Authentication
+
+This MCP server includes optional API key authentication for production deployments.
+
+#### Enabling Authentication
+
+1. **Set environment variables:**
+```bash
+export AUTH_ENABLED=true
+export API_KEYS="user1:secret-key-1,user2:secret-key-2"
+```
+
+2. **Deploy with authentication:**
+```bash
+# GCP deployment with auth
+export AUTH_ENABLED=true
+export API_KEYS="admin:your-secret-key"
+./scripts/deploy-gcp.sh
+```
+
+#### Authentication Flow
+
+1. **Client sends Authorization header:**
+```
+Authorization: Bearer your-api-key
+```
+
+2. **Server validates API key and creates user context**
+3. **Tools can access user information for permission checks**
+
+#### Extending Authentication
+
+The `auth.py` module provides a simple template that can be extended:
+
+```python
+# Replace SimpleAuthProvider with your preferred method:
+# - JWT tokens
+# - OAuth2
+# - Database-backed user management
+# - LDAP/Active Directory
+# - Custom authentication logic
+```
+
 ### Security Considerations
 
 ⚠️ **Important**: For production use, consider additional security measures:
 - **HTTPS**: Use the built-in SSL support with domain names
-- **Authentication**: Add authentication middleware (OAuth2, JWT, API keys)
+- **Authentication**: Enable API key authentication (see above)
 - **Rate limiting**: Implement rate limiting for API endpoints
 - **Firewall**: Restrict access to specific IP ranges if needed
 - **Monitoring**: Add logging and monitoring for security events
@@ -183,12 +230,20 @@ curl https://your-domain.com:8443/sse
 
 Claude Code and other MCP clients that support SSE transport can connect directly to your deployed server:
 
+#### Without Authentication:
 ```bash
-# For Claude Code
+# For Claude Code (no auth)
 claude mcp add demo-server --transport sse https://YOUR_SERVER:8443/sse
+```
 
-# Example with your deployed server
-claude mcp add demo-server --transport sse https://34.145.94.60:8443/sse
+#### With Authentication:
+```bash
+# For Claude Code (with API key)
+claude mcp add demo-server --transport sse https://YOUR_SERVER:8443/sse \
+  --header "Authorization: Bearer your-api-key"
+
+# Or using curl to test
+curl -H "Authorization: Bearer your-api-key" https://YOUR_SERVER:8443/sse
 ```
 
 **Note**: This method requires MCP clients that support SSE transport. Claude Desktop currently only supports stdio transport for local servers.
@@ -322,6 +377,11 @@ Once connected, you'll have access to:
 2. **SSL certificate warnings**: Expected with self-signed certificates
 3. **"Transport not supported"**: Client doesn't support SSE; use local mode
 4. **Authentication errors**: This template doesn't include auth; add as needed
+5. **"fetch failed" error in Claude Code**: 
+   - This occurs with self-signed certificates
+   - Solution 1: Use the local proxy (see Option B above)
+   - Solution 2: Run server locally with stdio transport
+   - Solution 3: Deploy with valid SSL certificate (Let's Encrypt)
 
 ## Development
 

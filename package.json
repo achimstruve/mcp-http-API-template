@@ -1,0 +1,14 @@
+{
+  "name": "mcp-demo-proxy",
+  "version": "1.0.0",
+  "description": "Local proxy for MCP demo server with self-signed certificate",
+  "main": "local-proxy.js",
+  "scripts": {
+    "start": "node local-proxy.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^2.0.6",
+    "eventsource": "^2.0.2"
+  }
+}
