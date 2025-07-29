@@ -2,8 +2,8 @@
 
 # Script to run MCP server with Let's Encrypt certificate
 
-DOMAIN_NAME=${DOMAIN_NAME:-"mcptemplate.agenovation.ai"}
-SSL_EMAIL=${SSL_EMAIL:-"achim@agenovation.ai"}
+DOMAIN_NAME=${DOMAIN_NAME:-"example.com"}
+SSL_EMAIL=${SSL_EMAIL:-"admin@example.com"}
 AUTH_ENABLED=${AUTH_ENABLED:-"true"}
 API_KEYS=${API_KEYS:-"demo:secret123,admin:admin456"}
 
@@ -31,6 +31,8 @@ sudo docker run --rm \
   --email "$SSL_EMAIL" \
   --agree-tos \
   --no-eff-email \
+  --non-interactive \
+  --keep-until-expiring \
   --domain "$DOMAIN_NAME"
 
 if [ $? -eq 0 ]; then

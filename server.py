@@ -47,8 +47,8 @@ def get_greeting(name: str) -> str:
     return f"Hello, {name}!"
 
 
-# Custom ASGI middleware for authentication
-class AuthMiddleware:
+# Simple ASGI auth wrapper
+class AuthWrapper:
     def __init__(self, app):
         self.app = app
         self.auth_enabled = os.getenv("AUTH_ENABLED", "false").lower() == "true"
@@ -75,15 +75,10 @@ class AuthMiddleware:
                 })
                 return
             
-            # Store auth context for this session
-            # In a real implementation, extract session ID from the request
-            session_id = scope.get("path", "").split("/")[-1]  # Simple session extraction
-            if session_id:
-                session_auth_contexts[session_id] = auth_context
-                logger.info(f"Authenticated user {auth_context.user_id} for session {session_id}")
+            logger.info(f"Authenticated user {auth_context.user_id}")
         
-        # Continue with the request
-        return await self.app(scope, receive, send)
+        # Call the wrapped app correctly
+        await self.app(scope, receive, send)
 
 
 # Start the server
@@ -91,12 +86,23 @@ if __name__ == "__main__":
     # Get configuration from environment variables
     transport = os.getenv("MCP_TRANSPORT", "sse")
     host = os.getenv("MCP_HOST", "0.0.0.0")  
-    port = int(os.getenv("MCP_PORT", "8899"))
+    # Default port based on SSL configuration
+    default_port = "8443" if os.getenv("SSL_ENABLED", "false").lower() == "true" else "8899"
+    port = int(os.getenv("MCP_PORT", default_port))
     
     # SSL configuration
     ssl_enabled = os.getenv("SSL_ENABLED", "false").lower() == "true"
     ssl_cert_path = os.getenv("SSL_CERT_PATH", "/etc/ssl/certs/cert.pem")
     ssl_key_path = os.getenv("SSL_KEY_PATH", "/etc/ssl/private/key.pem")
+    
+    # Check if SSL certificates exist and are readable
+    if ssl_enabled:
+        import os.path
+        if not (os.path.exists(ssl_cert_path) and os.path.exists(ssl_key_path)):
+            print(f"Warning: SSL enabled but certificates not found. Falling back to HTTP.")
+            print(f"  Cert path: {ssl_cert_path}")
+            print(f"  Key path: {ssl_key_path}")
+            ssl_enabled = False
     
     # Authentication configuration
     auth_enabled = os.getenv("AUTH_ENABLED", "false").lower() == "true"
@@ -118,14 +124,11 @@ if __name__ == "__main__":
         # For SSE transport, we need to use uvicorn to run the ASGI app
         import uvicorn
         
-        # Get the base ASGI app
-        base_app = mcp.sse_app
-        
-        # Wrap with auth middleware if enabled
+        # Get the base ASGI app and wrap with auth if needed
         if auth_enabled:
-            app = AuthMiddleware(base_app)
+            app = AuthWrapper(mcp.sse_app())  # Call method to get ASGI app
         else:
-            app = base_app
+            app = mcp.sse_app()  # Call method to get ASGI app
         
         # Configure SSL if enabled
         ssl_config = {}

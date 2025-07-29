@@ -65,8 +65,15 @@ class SimpleAuthProvider:
         return authorization
 
 
-# Global auth provider instance
-auth_provider = SimpleAuthProvider()
+# Global auth provider instance (lazy-loaded)
+_auth_provider = None
+
+def get_auth_provider():
+    """Get or create the auth provider instance"""
+    global _auth_provider
+    if _auth_provider is None:
+        _auth_provider = SimpleAuthProvider()
+    return _auth_provider
 
 
 def get_auth_context(authorization: Optional[str]) -> Optional[AuthContext]:
@@ -75,6 +82,7 @@ def get_auth_context(authorization: Optional[str]) -> Optional[AuthContext]:
         # Authentication disabled, return default context
         return AuthContext(user_id="anonymous", api_key="")
     
+    auth_provider = get_auth_provider()
     api_key = auth_provider.extract_api_key(authorization)
     if not api_key:
         return None

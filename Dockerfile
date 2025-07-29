@@ -7,11 +7,8 @@ WORKDIR /app
 # Install uv package manager
 RUN pip install uv
 
-# Copy pyproject.toml and uv.lock first for better caching
-COPY pyproject.toml uv.lock ./
-
-# Install dependencies using uv (including SSL support)
-RUN uv sync --frozen --all-extras
+# Install dependencies directly
+RUN uv pip install --system mcp anyio typing-extensions python-dotenv uvicorn[standard] starlette
 
 # Copy the rest of the application
 COPY server.py auth.py ./
@@ -24,5 +21,5 @@ ENV MCP_PORT=8899
 # Expose both HTTP and HTTPS ports
 EXPOSE 8899 8443
 
-# Run the server using uv
-CMD ["uv", "run", "python", "server.py"]
+# Run the server directly
+CMD ["python", "server.py"]
