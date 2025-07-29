@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-IMAGE_NAME="mcp-demo-server"
+IMAGE_NAME="mcp-server-web"
 GCP_PROJECT_ID="${GCP_PROJECT_ID:-your-gcp-project-id}"
 GCR_HOSTNAME="${GCR_HOSTNAME:-gcr.io}"
 INSTANCE_NAME="${INSTANCE_NAME:-mcp-server-vm}"

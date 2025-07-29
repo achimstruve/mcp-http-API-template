@@ -14,7 +14,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --all-extras
 
 # Copy the rest of the application
-COPY server.py ./
+COPY server.py auth.py ./
 
 # Set environment variables for web deployment
 ENV MCP_TRANSPORT=sse

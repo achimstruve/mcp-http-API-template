@@ -83,7 +83,7 @@ class AuthMiddleware:
                 logger.info(f"Authenticated user {auth_context.user_id} for session {session_id}")
         
         # Continue with the request
-        await self.app(scope, receive, send)
+        return await self.app(scope, receive, send)
 
 
 # Start the server
@@ -118,10 +118,14 @@ if __name__ == "__main__":
         # For SSE transport, we need to use uvicorn to run the ASGI app
         import uvicorn
         
-        # Wrap the app with auth middleware if enabled
-        app = mcp.sse_app
+        # Get the base ASGI app
+        base_app = mcp.sse_app
+        
+        # Wrap with auth middleware if enabled
         if auth_enabled:
-            app = AuthMiddleware(app)
+            app = AuthMiddleware(base_app)
+        else:
+            app = base_app
         
         # Configure SSL if enabled
         ssl_config = {}

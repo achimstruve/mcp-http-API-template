@@ -25,7 +25,7 @@ if ! command -v certbot &> /dev/null; then
 fi
 
 # Stop any running MCP server temporarily
-docker stop mcp-demo-server 2>/dev/null || true
+docker stop mcp-server-web 2>/dev/null || true
 
 # Generate certificates using standalone mode
 echo "Generating SSL certificate for $DOMAIN_NAME..."
@@ -53,7 +53,7 @@ chmod 600 "${KEY_DIR}/key.pem"
 echo "Setting up automatic certificate renewal..."
 cat > /etc/cron.d/certbot-renew << EOF
 # Renew Let's Encrypt certificates twice daily
-0 */12 * * * root certbot renew --quiet --post-hook "docker restart mcp-demo-server 2>/dev/null || true"
+0 */12 * * * root certbot renew --quiet --post-hook "docker restart mcp-server-web 2>/dev/null || true"
 EOF
 
 echo "SSL certificates setup complete!"

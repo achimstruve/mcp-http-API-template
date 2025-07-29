@@ -27,18 +27,18 @@ if [ "$SSL_ENABLED" = "true" ]; then
     echo "Starting MCP server on https://localhost:8443/sse"
     echo "Note: Ensure SSL certificates are available at /etc/ssl/certs/cert.pem and /etc/ssl/private/key.pem"
     docker run --rm -it \
-        --name mcp-demo-server \
+        --name mcp-server-web \
         -p 8443:8443 \
         -v /etc/ssl:/etc/ssl:ro \
         $ENV_FILE_ARG \
-        mcp-demo-server:latest
+        mcp-server-web:latest
 else
     echo "Starting MCP server on http://localhost:8899/sse"
     docker run --rm -it \
-        --name mcp-demo-server \
+        --name mcp-server-web \
         -p 8899:8899 \
         $ENV_FILE_ARG \
-        mcp-demo-server:latest
+        mcp-server-web:latest
 fi
 
 echo "Server stopped"

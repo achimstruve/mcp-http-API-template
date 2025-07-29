@@ -1,5 +1,5 @@
 [project]
-name = "mcp-demo-server"
+name = "mcp-server-web"
 version = "0.1.0"
 description = "A demonstration of a FastMCP server that provides simple API tools and resources"
 readme = "README.md"

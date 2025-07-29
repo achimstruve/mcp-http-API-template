@@ -13,6 +13,6 @@ cd "$PROJECT_DIR"
 
 # Build the Docker image
 echo "Building MCP server Docker image..."
-docker build -t mcp-demo-server:latest .
+docker build -t mcp-server-web:latest .
 
-echo "Build complete! Image tagged as mcp-demo-server:latest"
+echo "Build complete! Image tagged as mcp-server-web:latest"
