@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "demo-server-web": {
+      "type": "sse",
+      "url": "https://mcptemplate.agenovation.ai:8443/sse",
+      "description": "Demo MCP server with HTTPS"
+    }
+  }
+}
