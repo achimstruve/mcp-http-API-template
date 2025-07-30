@@ -123,6 +123,8 @@ Configure Claude Desktop to connect to your MCP server by editing the config fil
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`  
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
+#### Option 1: Using mcp-remote (Recommended)
+
 ```json
 {
   "mcpServers": {
@@ -131,6 +133,39 @@ Configure Claude Desktop to connect to your MCP server by editing the config fil
       "args": ["mcp-remote", "https://your-domain.com:8443/sse"],
       "env": {
         "MCP_REMOTE_HEADERS": "{\"Authorization\": \"Bearer your-api-key\"}"
+      }
+    }
+  }
+}
+```
+
+#### Option 2: Using the Custom Bridge (If mcp-remote fails)
+
+If you encounter issues with `mcp-remote`, use the included bridge script:
+
+```json
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "node",
+      "args": ["/path/to/scripts/claude-desktop-bridge.js", "https://your-domain.com:8443/sse", "your-api-key"],
+      "env": {}
+    }
+  }
+}
+```
+
+Or using environment variables:
+
+```json
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "node",
+      "args": ["/path/to/scripts/claude-desktop-bridge.js"],
+      "env": {
+        "MCP_SERVER_URL": "https://your-domain.com:8443/sse",
+        "MCP_API_KEY": "your-api-key"
       }
     }
   }

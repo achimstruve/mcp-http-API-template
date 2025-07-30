@@ -57,8 +57,8 @@ class AuthWrapper:
         if scope["type"] == "http":
             path = scope.get("path", "")
             
-            # Handle OAuth metadata endpoint for mcp-remote compatibility (NO AUTH REQUIRED)
-            if path == "/.well-known/oauth-authorization-server":
+            # Handle OAuth metadata endpoints for mcp-remote compatibility (NO AUTH REQUIRED)
+            if path in ["/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource"]:
                 await send({
                     "type": "http.response.start",
                     "status": 200,
@@ -69,14 +69,23 @@ class AuthWrapper:
                 host = headers.get(b"host", b"localhost").decode("utf-8")
                 
                 # Minimal OAuth metadata to satisfy mcp-remote
-                metadata = {
-                    "issuer": f"https://{host}",
-                    "authorization_endpoint": "https://not-used",
-                    "token_endpoint": "https://not-used",
-                    "response_types_supported": ["token"],
-                    "grant_types_supported": ["client_credentials"],
-                    "token_endpoint_auth_methods_supported": ["none"]
-                }
+                if path == "/.well-known/oauth-authorization-server":
+                    metadata = {
+                        "issuer": f"https://{host}",
+                        "authorization_endpoint": "https://not-used",
+                        "token_endpoint": "https://not-used",
+                        "response_types_supported": ["token"],
+                        "grant_types_supported": ["client_credentials"],
+                        "token_endpoint_auth_methods_supported": ["none"]
+                    }
+                else:  # oauth-protected-resource
+                    metadata = {
+                        "resource": f"https://{host}/sse",
+                        "authorization_servers": [f"https://{host}"],
+                        "scopes_supported": ["read", "write"],
+                        "bearer_methods_supported": ["header"]
+                    }
+                
                 await send({
                     "type": "http.response.body",
                     "body": json.dumps(metadata).encode(),
