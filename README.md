@@ -1,6 +1,6 @@
 # MCP Server Template
 
-A production-ready FastMCP server template with HTTPS support, authentication, and Docker deployment. This template provides a foundation for building secure, web-accessible MCP servers that can be used by AI agents over HTTP/HTTPS.
+A production-ready FastMCP server template with HTTPS support, authentication, and Docker deployment. This template provides a foundation for building secure, web-accessible MCP servers that can be used by Claude Code and other AI agents over HTTP/HTTPS with SSE transport.
 
 ## Features
 
@@ -116,67 +116,9 @@ def get_my_resource(id: str) -> str:
 
 ## Client Setup
 
-### Claude Desktop
+### Claude Code (Supported)
 
-Configure Claude Desktop to connect to your MCP server by editing the config file:
-
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`  
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-#### Option 1: Using mcp-remote (Recommended)
-
-```json
-{
-  "mcpServers": {
-    "my-server": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://your-domain.com:8443/sse"],
-      "env": {
-        "MCP_REMOTE_HEADERS": "{\"Authorization\": \"Bearer your-api-key\"}"
-      }
-    }
-  }
-}
-```
-
-#### Option 2: Using the Custom Bridge (If mcp-remote fails)
-
-If you encounter issues with `mcp-remote`, use the included bridge script:
-
-```json
-{
-  "mcpServers": {
-    "my-server": {
-      "command": "node",
-      "args": ["/path/to/scripts/claude-desktop-bridge.js", "https://your-domain.com:8443/sse", "your-api-key"],
-      "env": {}
-    }
-  }
-}
-```
-
-Or using environment variables:
-
-```json
-{
-  "mcpServers": {
-    "my-server": {
-      "command": "node",
-      "args": ["/path/to/scripts/claude-desktop-bridge.js"],
-      "env": {
-        "MCP_SERVER_URL": "https://your-domain.com:8443/sse",
-        "MCP_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
-
-**Note**: The server includes OAuth metadata endpoints for compatibility with `mcp-remote`.
-
-### Claude Code
-
-Add your MCP server to Claude Code:
+Claude Code natively supports SSE transport over HTTPS. Add your MCP server:
 
 ```bash
 # With authentication
@@ -186,6 +128,10 @@ claude mcp add my-server --transport sse https://your-domain.com:8443/sse \
 # Without authentication (development only)
 claude mcp add my-server --transport sse https://your-domain.com:8443/sse
 ```
+
+### Claude Desktop (Not Supported)
+
+⚠️ **Note**: Claude Desktop only supports stdio transport and cannot connect to HTTP/HTTPS MCP servers. Use Claude Code instead for web-based MCP servers.
 
 ### Other MCP Clients
 
@@ -223,8 +169,7 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com:8443/sse
 └── scripts/
     ├── build.sh           # Docker build script
     ├── run-local.sh       # Local development script
-    ├── run-with-letsencrypt.sh  # Production deployment
-    └── mcp-bridge.js      # Node.js stdio-to-SSE bridge (optional)
+    └── run-with-letsencrypt.sh  # Production deployment
 ```
 
 ### Security Features
@@ -234,7 +179,6 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com:8443/sse
 - **Input Validation**: Type checking and parameter validation
 - **Error Handling**: Secure error responses without information leakage
 - **Let's Encrypt Integration**: Automatic SSL certificate management
-- **OAuth Compatibility**: Minimal OAuth metadata endpoints for `mcp-remote` compatibility
 
 ## Configuration Reference
 
