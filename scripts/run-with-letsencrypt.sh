@@ -2,6 +2,11 @@
 
 # Script to run MCP server with Let's Encrypt certificate
 
+# Source .env file if it exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 DOMAIN_NAME=${DOMAIN_NAME:-"example.com"}
 SSL_EMAIL=${SSL_EMAIL:-"admin@example.com"}
 AUTH_ENABLED=${AUTH_ENABLED:-"true"}
