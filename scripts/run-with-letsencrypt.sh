@@ -54,7 +54,6 @@ if [ $? -eq 0 ]; then
       -p 8443:8443 \
       -v /etc/letsencrypt:/etc/letsencrypt:ro \
       -v /tmp/auth.py:/app/auth.py:ro \
-      -e MCP_TRANSPORT=sse \
       -e MCP_HOST=0.0.0.0 \
       -e MCP_PORT=8443 \
       -e SSL_ENABLED=true \

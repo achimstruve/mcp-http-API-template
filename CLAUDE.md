@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Python-based MCP (Model Context Protocol) server that can be deployed both locally and as a web service. It uses the FastMCP framework and provides example tools and resources for AI agents.
+This is a Python-based MCP (Model Context Protocol) server designed for web deployment using HTTPS and Server-Sent Events (SSE). It uses the FastMCP framework and provides example tools and resources for AI agents.
 
 ## Development Commands
 
@@ -19,21 +19,20 @@ uv sync --all-extras
 
 ### Running the Server
 
-**Local development (stdio):**
-```bash
-# Default local mode
-uv run python server.py
-
-# Test with MCP Inspector
-npx @modelcontextprotocol/inspector "uv" "run" "python" "server.py"
-```
-
-**Web mode (HTTP):**
+**Local development (HTTP):**
 ```bash
 # Run in HTTP mode locally
-MCP_TRANSPORT=sse uv run python server.py
+uv run python server.py
 
 # Access at http://localhost:8899/sse
+```
+
+**Production (HTTPS):**
+```bash
+# Run with SSL enabled
+SSL_ENABLED=true uv run python server.py
+
+# Access at https://localhost:8443/sse
 ```
 
 ### Code Quality Commands
@@ -54,30 +53,33 @@ uv run pytest
 ## Architecture
 
 **Single-file architecture:**
-- **server.py**: Main application with environment-aware transport configuration
+- **server.py**: Main application with HTTPS/SSE web server
   - Tools: `add(a, b)` and `secret_word()`
   - Resources: `greeting://{name}` dynamic resource
-  - Supports both stdio (local) and streamable-http (web) transports
+  - SSE transport for real-time communication with Claude Code
 
 ## Key Configuration
 
-- **MCP Version**: >=2.3.0 (supports streamable-http)
+- **MCP Version**: >=2.3.0 (supports SSE transport)
 - **Python Version**: >=3.10
 - **Package Manager**: uv with dependency locking
-- **Dependencies**: mcp, anyio, typing-extensions, python-dotenv
+- **Dependencies**: mcp, uvicorn, python-dotenv
 
 ## Environment Variables
 
-Configure deployment with:
-- `MCP_TRANSPORT`: "stdio" (default) or "sse" (for web)
-- `MCP_HOST`: "0.0.0.0" (default for web)
-- `MCP_PORT`: 8899 (HTTP) or 8443 (HTTPS)
+**Server Configuration:**
+- `MCP_HOST`: Server host (default: "0.0.0.0")
+- `MCP_PORT`: Server port (default: 8899 HTTP, 8443 HTTPS)
 
 **SSL Configuration:**
 - `SSL_ENABLED`: Enable HTTPS (default: false)
-- `SSL_CERT_PATH`: SSL certificate path
-- `SSL_KEY_PATH`: SSL private key path
+- `SSL_CERT_PATH`: SSL certificate path (default: "/etc/ssl/certs/cert.pem")
+- `SSL_KEY_PATH`: SSL private key path (default: "/etc/ssl/private/key.pem")
 - `DOMAIN_NAME`: Domain for automatic Let's Encrypt certificates
+
+**Authentication:**
+- `AUTH_ENABLED`: Enable API key authentication (default: false)
+- `API_KEYS`: Comma-separated "user:key" pairs
 
 ## Web Deployment
 
@@ -111,3 +113,7 @@ curl http://localhost:8899/sse
 # Test HTTPS endpoint
 curl https://your-domain.com:8443/sse
 ```
+
+## Client Compatibility
+
+This MCP server is designed for **Claude Code** which natively supports SSE transport over HTTPS. Claude Desktop is not supported as it only works with stdio transport.
