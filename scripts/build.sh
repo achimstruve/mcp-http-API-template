@@ -11,15 +11,21 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 # Change to project directory
 cd "$PROJECT_DIR"
 
-# Build the Docker image
-echo "Building MCP server Docker image..."
-docker build -t mcp-server-web:latest .
+# Clean up old images before building
+echo "Cleaning up old Docker images..."
+docker rmi mcp-server-web:latest 2>/dev/null || true
+docker builder prune -f
+
+# Build the Docker image with no cache
+echo "Building MCP server Docker image (no cache)..."
+docker build --no-cache -t mcp-server-web:latest .
 
 echo "Build complete! Image tagged as mcp-server-web:latest"
 
-# Clean up intermediate images
-echo "Cleaning up intermediate build layers..."
-docker image prune -f --filter "label!=mcp-server-web"
+# Clean up intermediate images and build cache
+echo "Cleaning up intermediate build layers and cache..."
+docker image prune -f
+docker builder prune -f
 
 # Show disk usage after cleanup
 echo "Docker disk usage after cleanup:"

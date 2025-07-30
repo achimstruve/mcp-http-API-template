@@ -116,6 +116,29 @@ def get_my_resource(id: str) -> str:
 
 ## Client Setup
 
+### Claude Desktop
+
+Configure Claude Desktop to connect to your MCP server by editing the config file:
+
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`  
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://your-domain.com:8443/sse"],
+      "env": {
+        "MCP_REMOTE_HEADERS": "{\"Authorization\": \"Bearer your-api-key\"}"
+      }
+    }
+  }
+}
+```
+
+**Note**: The server includes OAuth metadata endpoints for compatibility with `mcp-remote`.
+
 ### Claude Code
 
 Add your MCP server to Claude Code:
@@ -165,16 +188,18 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com:8443/sse
 └── scripts/
     ├── build.sh           # Docker build script
     ├── run-local.sh       # Local development script
-    └── run-with-letsencrypt.sh  # Production deployment
+    ├── run-with-letsencrypt.sh  # Production deployment
+    └── mcp-bridge.js      # Node.js stdio-to-SSE bridge (optional)
 ```
 
 ### Security Features
 
-- **API Key Authentication**: User-based access control
+- **API Key Authentication**: User-based access control with Bearer token support
 - **HTTPS Enforcement**: SSL/TLS encryption for all communications
 - **Input Validation**: Type checking and parameter validation
 - **Error Handling**: Secure error responses without information leakage
 - **Let's Encrypt Integration**: Automatic SSL certificate management
+- **OAuth Compatibility**: Minimal OAuth metadata endpoints for `mcp-remote` compatibility
 
 ## Configuration Reference
 

@@ -47,35 +47,61 @@ def get_greeting(name: str) -> str:
     return f"Hello, {name}!"
 
 
-# Simple ASGI auth wrapper
+# Simple ASGI auth wrapper with OAuth metadata support
 class AuthWrapper:
     def __init__(self, app):
         self.app = app
         self.auth_enabled = os.getenv("AUTH_ENABLED", "false").lower() == "true"
     
     async def __call__(self, scope, receive, send):
-        if self.auth_enabled and scope["type"] == "http":
-            # Extract authorization header
-            headers = dict(scope.get("headers", []))
-            authorization = headers.get(b"authorization", b"").decode("utf-8")
+        if scope["type"] == "http":
+            path = scope.get("path", "")
             
-            # Validate authentication
-            auth_context = get_auth_context(authorization)
-            
-            if not auth_context:
-                # Send 401 Unauthorized
+            # Handle OAuth metadata endpoint for mcp-remote compatibility
+            if path == "/.well-known/oauth-authorization-server":
                 await send({
                     "type": "http.response.start",
-                    "status": 401,
+                    "status": 200,
                     "headers": [[b"content-type", b"application/json"]],
                 })
+                # Minimal OAuth metadata to satisfy mcp-remote
+                metadata = {
+                    "issuer": f"https://{scope['headers'][0][1].decode()}",
+                    "authorization_endpoint": "https://not-used",
+                    "token_endpoint": "https://not-used",
+                    "response_types_supported": ["token"],
+                    "grant_types_supported": ["client_credentials"],
+                    "token_endpoint_auth_methods_supported": ["none"]
+                }
                 await send({
                     "type": "http.response.body",
-                    "body": json.dumps({"error": "Unauthorized"}).encode(),
+                    "body": json.dumps(metadata).encode(),
                 })
                 return
             
-            logger.info(f"Authenticated user {auth_context.user_id}")
+            # Regular auth check for other endpoints
+            if self.auth_enabled:
+                # Extract authorization header
+                headers = dict(scope.get("headers", []))
+                authorization = headers.get(b"authorization", b"").decode("utf-8")
+                
+                # Validate authentication
+                auth_context = get_auth_context(authorization)
+                
+                if not auth_context:
+                    # Send 401 Unauthorized
+                    await send({
+                        "type": "http.response.start",
+                        "status": 401,
+                        "headers": [[b"content-type", b"application/json"]],
+                    })
+                    await send({
+                        "type": "http.response.body",
+                        "body": json.dumps({"error": "Unauthorized"}).encode(),
+                    })
+                    return
+                
+                logger.info(f"Authenticated user {auth_context.user_id}")
         
         # Call the wrapped app correctly
         await self.app(scope, receive, send)
