@@ -69,11 +69,12 @@ if [ $? -eq 0 ]; then
     echo "Server URL: https://$DOMAIN_NAME:8443/sse"
     echo "Authentication: $AUTH_ENABLED"
     if [ "$AUTH_ENABLED" = "true" ]; then
-        echo "Demo API key: demo:secret123"
-        echo "Admin API key: admin:admin456"
+        echo "API Keys configured: $API_KEYS"
         echo ""
         echo "Test connection:"
-        echo "curl -H 'Authorization: Bearer secret123' https://$DOMAIN_NAME:8443/sse"
+        # Extract first API key for example
+        FIRST_KEY=$(echo "$API_KEYS" | cut -d',' -f1 | cut -d':' -f2)
+        echo "curl -H 'Authorization: Bearer $FIRST_KEY' https://$DOMAIN_NAME:8443/sse"
     fi
 else
     echo "Failed to obtain certificate. Check domain and firewall settings."
