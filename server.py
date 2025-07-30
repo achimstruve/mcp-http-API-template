@@ -57,16 +57,20 @@ class AuthWrapper:
         if scope["type"] == "http":
             path = scope.get("path", "")
             
-            # Handle OAuth metadata endpoint for mcp-remote compatibility
+            # Handle OAuth metadata endpoint for mcp-remote compatibility (NO AUTH REQUIRED)
             if path == "/.well-known/oauth-authorization-server":
                 await send({
                     "type": "http.response.start",
                     "status": 200,
                     "headers": [[b"content-type", b"application/json"]],
                 })
+                # Get host from Host header or default
+                headers = dict(scope.get("headers", []))
+                host = headers.get(b"host", b"localhost").decode("utf-8")
+                
                 # Minimal OAuth metadata to satisfy mcp-remote
                 metadata = {
-                    "issuer": f"https://{scope['headers'][0][1].decode()}",
+                    "issuer": f"https://{host}",
                     "authorization_endpoint": "https://not-used",
                     "token_endpoint": "https://not-used",
                     "response_types_supported": ["token"],
