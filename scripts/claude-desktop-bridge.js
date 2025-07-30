@@ -64,32 +64,55 @@ const rl = readline.createInterface({
 // Function to send request to SSE server
 function sendToServer(jsonRequest) {
     return new Promise((resolve, reject) => {
+        const requestId = jsonRequest.id !== undefined ? jsonRequest.id : 0;
+        
         const req = httpModule.request(requestOptions, (res) => {
             let responseData = '';
+            let sseBuffer = '';
             
             // Handle different response types
             if (res.headers['content-type']?.includes('text/event-stream')) {
                 // SSE response - parse event stream
                 res.on('data', (chunk) => {
-                    const lines = chunk.toString().split('\n');
+                    sseBuffer += chunk.toString();
+                    const lines = sseBuffer.split('\n');
+                    sseBuffer = lines.pop(); // Keep incomplete line in buffer
                     
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
                             try {
                                 const data = JSON.parse(line.substring(6));
-                                // Send response immediately for each SSE event
-                                console.log(JSON.stringify(data));
                                 
-                                // If this looks like a final response, resolve
-                                if (data.result !== undefined || data.error !== undefined) {
+                                // Ensure proper JSON-RPC format
+                                if (data.jsonrpc && (data.result !== undefined || data.error !== undefined)) {
+                                    // Make sure ID is properly set
+                                    if (data.id === null || data.id === undefined) {
+                                        data.id = requestId;
+                                    }
+                                    console.log(JSON.stringify(data));
                                     resolve();
                                     return;
                                 }
                             } catch (parseError) {
                                 // Ignore invalid JSON in SSE stream
+                                console.error(`Failed to parse SSE line: ${line}`, parseError);
                             }
                         }
                     }
+                });
+                
+                res.on('end', () => {
+                    // If we get here without a proper response, send timeout
+                    const timeoutResponse = {
+                        jsonrpc: '2.0',
+                        error: {
+                            code: -32603,
+                            message: 'No valid response received from server'
+                        },
+                        id: requestId
+                    };
+                    console.log(JSON.stringify(timeoutResponse));
+                    resolve();
                 });
             } else {
                 // Regular JSON response
@@ -101,29 +124,62 @@ function sendToServer(jsonRequest) {
                     try {
                         if (responseData.trim()) {
                             const jsonResponse = JSON.parse(responseData);
+                            // Ensure proper ID
+                            if (jsonResponse.id === null || jsonResponse.id === undefined) {
+                                jsonResponse.id = requestId;
+                            }
                             console.log(JSON.stringify(jsonResponse));
+                        } else {
+                            // Empty response
+                            const emptyResponse = {
+                                jsonrpc: '2.0',
+                                error: {
+                                    code: -32603,
+                                    message: 'Empty response from server'
+                                },
+                                id: requestId
+                            };
+                            console.log(JSON.stringify(emptyResponse));
                         }
                         resolve();
                     } catch (parseError) {
-                        reject(new Error(`Failed to parse response: ${parseError.message}`));
+                        const errorResponse = {
+                            jsonrpc: '2.0',
+                            error: {
+                                code: -32700,
+                                message: `Failed to parse response: ${parseError.message}`
+                            },
+                            id: requestId
+                        };
+                        console.log(JSON.stringify(errorResponse));
+                        resolve();
                     }
                 });
             }
             
             res.on('error', (error) => {
-                reject(new Error(`Response error: ${error.message}`));
+                const errorResponse = {
+                    jsonrpc: '2.0',
+                    error: {
+                        code: -32603,
+                        message: `Response error: ${error.message}`
+                    },
+                    id: requestId
+                };
+                console.log(JSON.stringify(errorResponse));
+                resolve();
             });
         });
         
         req.on('error', (error) => {
-            // Send error response in MCP format
+            // Send error response in MCP format with proper ID
             const errorResponse = {
                 jsonrpc: '2.0',
                 error: {
                     code: -32603,
                     message: `Connection error: ${error.message}`
                 },
-                id: jsonRequest.id || null
+                id: requestId
             };
             console.log(JSON.stringify(errorResponse));
             resolve(); // Don't reject, as we've sent an error response
@@ -137,7 +193,7 @@ function sendToServer(jsonRequest) {
                     code: -32603,
                     message: 'Request timeout'
                 },
-                id: jsonRequest.id || null
+                id: requestId
             };
             console.log(JSON.stringify(timeoutResponse));
             resolve();
@@ -154,18 +210,20 @@ function sendToServer(jsonRequest) {
 
 // Handle stdio input from Claude Desktop
 rl.on('line', async (line) => {
+    if (!line.trim()) return; // Skip empty lines
+    
     try {
         const request = JSON.parse(line.trim());
         await sendToServer(request);
     } catch (error) {
-        // Send error response for invalid JSON
+        // Send error response for invalid JSON with ID 0 (fallback)
         const errorResponse = {
             jsonrpc: '2.0',
             error: {
                 code: -32700,
                 message: `Parse error: ${error.message}`
             },
-            id: null
+            id: 0
         };
         console.log(JSON.stringify(errorResponse));
     }
