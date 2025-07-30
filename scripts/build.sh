@@ -16,3 +16,11 @@ echo "Building MCP server Docker image..."
 docker build -t mcp-server-web:latest .
 
 echo "Build complete! Image tagged as mcp-server-web:latest"
+
+# Clean up intermediate images
+echo "Cleaning up intermediate build layers..."
+docker image prune -f --filter "label!=mcp-server-web"
+
+# Show disk usage after cleanup
+echo "Docker disk usage after cleanup:"
+docker system df
