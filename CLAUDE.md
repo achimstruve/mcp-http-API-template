@@ -38,13 +38,13 @@ SSL_ENABLED=true uv run python server.py
 ### Code Quality Commands
 ```bash
 # Format code
-uv run black server.py
+uv run black server.py oauth.py
 
 # Type checking
-uv run mypy server.py
+uv run mypy server.py oauth.py
 
 # Linting
-uv run flake8 server.py
+uv run flake8 server.py oauth.py
 
 # Run tests
 uv run pytest
@@ -52,18 +52,22 @@ uv run pytest
 
 ## Architecture
 
-**Single-file architecture:**
-- **server.py**: Main application with HTTPS/SSE web server
+**Main components:**
+- **server.py**: Main application with HTTPS/SSE web server and OAuth endpoints
   - Tools: `add(a, b)` and `secret_word()`
   - Resources: `greeting://{name}` dynamic resource
+  - OAuth endpoints: `/.well-known/oauth-authorization-server`, `/authorize`, `/callback`, `/token`
   - SSE transport for real-time communication with Claude Code
+- **oauth.py**: OAuth 2.0 implementation with Google authentication
+  - JWT token generation and validation
+  - OAuth metadata and flow handling
 
 ## Key Configuration
 
 - **MCP Version**: >=2.3.0 (supports SSE transport)
 - **Python Version**: >=3.10
 - **Package Manager**: uv with dependency locking
-- **Dependencies**: mcp, uvicorn, python-dotenv
+- **Dependencies**: mcp, uvicorn, python-dotenv, authlib, httpx, pyjwt
 
 ## Environment Variables
 
@@ -77,9 +81,11 @@ uv run pytest
 - `SSL_KEY_PATH`: SSL private key path (default: "/etc/ssl/private/key.pem")
 - `DOMAIN_NAME`: Domain for automatic Let's Encrypt certificates
 
-**Authentication:**
-- `AUTH_ENABLED`: Enable API key authentication (default: false)
-- `API_KEYS`: Comma-separated "user:key" pairs
+**OAuth Authentication:**
+- `GOOGLE_CLIENT_ID`: Google OAuth Client ID (required for authentication)
+- `GOOGLE_CLIENT_SECRET`: Google OAuth Client Secret
+- `OAUTH_REDIRECT_URI`: OAuth callback URL (e.g., https://your-domain.com:8443/callback)
+- `JWT_SECRET_KEY`: Secret key for signing JWT tokens
 
 ## Web Deployment
 
@@ -110,8 +116,11 @@ export SSL_EMAIL=admin@your-domain.com
 # Test HTTP endpoint
 curl http://localhost:8899/sse
 
-# Test HTTPS endpoint
-curl https://your-domain.com:8443/sse
+# Test OAuth metadata endpoint
+curl https://your-domain.com:8443/.well-known/oauth-authorization-server
+
+# Test HTTPS endpoint (requires JWT token)
+curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 ```
 
 ## Client Compatibility

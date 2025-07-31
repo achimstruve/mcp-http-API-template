@@ -4,11 +4,11 @@ A production-ready FastMCP server template with HTTPS support, authentication, a
 
 ## Features
 
-- **🔒 Authentication**: API key-based authentication with user context
+- **🔒 OAuth Authentication**: Google OAuth 2.0 integration for secure authentication
 - **🌐 HTTPS Support**: SSL/TLS encryption with Let's Encrypt integration
 - **🐳 Docker Deployment**: Production-ready containerized deployment
 - **⚡ FastMCP Integration**: Built on the modern FastMCP framework
-- **🛡️ Security First**: Input validation, proper error handling, and security headers
+- **🛡️ Security First**: JWT tokens, input validation, and security headers
 
 ### Example Tools & Resources
 
@@ -35,14 +35,25 @@ pip install uv
 uv sync
 ```
 
-### 2. Configure Environment
+### 2. Configure Google OAuth
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable Google+ API
+4. Create OAuth 2.0 credentials:
+   - Application type: Web application
+   - Authorized redirect URIs: `https://your-domain.com:8443/callback`
+
+### 3. Configure Environment
 
 Create a `.env` file:
 
 ```bash
-# Authentication
-AUTH_ENABLED=true
-API_KEYS="user1:your-secure-api-key-here"
+# OAuth Configuration
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+OAUTH_REDIRECT_URI=https://your-domain.com:8443/callback
+JWT_SECRET_KEY=your-secure-random-string-here
 
 # SSL/HTTPS (for production)
 SSL_ENABLED=true
@@ -56,7 +67,7 @@ MCP_HOST=0.0.0.0
 MCP_PORT=8443
 ```
 
-### 3. Deploy
+### 4. Deploy
 
 #### Local Development
 ```bash
@@ -72,8 +83,10 @@ MCP_TRANSPORT=sse SSL_ENABLED=false uv run python server.py
 # Deploy with HTTPS and Let's Encrypt
 export DOMAIN_NAME=your-domain.com
 export SSL_EMAIL=admin@your-domain.com
-export AUTH_ENABLED=true
-export API_KEYS="admin:your-secure-api-key"
+export GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+export GOOGLE_CLIENT_SECRET=your-google-client-secret
+export OAUTH_REDIRECT_URI=https://your-domain.com:8443/callback
+export JWT_SECRET_KEY=$(openssl rand -base64 32)
 sudo -E ./scripts/run-with-letsencrypt.sh
 ```
 
@@ -95,8 +108,9 @@ Your server will be available at: `https://your-domain.com:8443/sse`
    - Add any additional dependencies
 
 4. **Configure deployment**:
-   - Set your domain name and API keys
-   - Customize authentication logic in `auth.py` if needed
+   - Set up Google OAuth credentials
+   - Configure your domain name and OAuth redirect URI
+   - Generate a secure JWT secret key
 
 ### Example Tool Implementation
 
@@ -118,16 +132,17 @@ def get_my_resource(id: str) -> str:
 
 ### Claude Code (Supported)
 
-Claude Code natively supports SSE transport over HTTPS. Add your MCP server:
+Claude Code natively supports SSE transport over HTTPS with OAuth. Add your MCP server:
 
 ```bash
-# With authentication
-claude mcp add my-server --transport sse https://your-domain.com:8443/sse \
-  --header "Authorization: Bearer your-api-key"
-
-# Without authentication (development only)
+# Add the server (OAuth flow will start automatically)
 claude mcp add my-server --transport sse https://your-domain.com:8443/sse
 ```
+
+When you connect, Claude Code will:
+1. Detect OAuth is required
+2. Open your browser for Google authentication
+3. Store the token securely for future connections
 
 ### Claude Desktop (Not Supported)
 
@@ -138,7 +153,7 @@ claude mcp add my-server --transport sse https://your-domain.com:8443/sse
 Configure your MCP client with:
 - **Transport**: `sse` (Server-Sent Events)
 - **URL**: `https://your-domain.com:8443/sse`
-- **Authentication**: `Authorization: Bearer your-api-key` header
+- **Authentication**: OAuth 2.0 with JWT tokens
 
 ### Testing Your Server
 
@@ -146,8 +161,11 @@ Configure your MCP client with:
 # Test connectivity
 curl https://your-domain.com:8443/sse
 
-# Test with authentication
-curl -H "Authorization: Bearer your-api-key" https://your-domain.com:8443/sse
+# Test OAuth metadata endpoint
+curl https://your-domain.com:8443/.well-known/oauth-authorization-server
+
+# After OAuth authentication, test with JWT token
+curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 
 # Test specific tools (requires MCP client)
 # Your MCP client will be able to call tools like:
@@ -162,7 +180,7 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com:8443/sse
 
 ```
 ├── server.py              # Main MCP server implementation
-├── auth.py                # Authentication middleware
+├── oauth.py               # OAuth 2.0 authentication implementation
 ├── Dockerfile             # Production container setup
 ├── pyproject.toml         # Python dependencies and config
 ├── .env                   # Environment configuration
@@ -174,8 +192,10 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com:8443/sse
 
 ### Security Features
 
-- **API Key Authentication**: User-based access control with Bearer token support
+- **OAuth 2.0 Authentication**: Google OAuth integration with JWT tokens
 - **HTTPS Enforcement**: SSL/TLS encryption for all communications
+- **JWT Token Validation**: Short-lived tokens (1 hour) for secure access
+- **PKCE Support**: Protection against authorization code interception
 - **Input Validation**: Type checking and parameter validation
 - **Error Handling**: Secure error responses without information leakage
 - **Let's Encrypt Integration**: Automatic SSL certificate management
@@ -186,8 +206,10 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com:8443/sse
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `AUTH_ENABLED` | Enable API key authentication | `false` | No |
-| `API_KEYS` | API keys in format `"user1:key1,user2:key2"` | - | If auth enabled |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | - | For authentication |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | - | For authentication |
+| `OAUTH_REDIRECT_URI` | OAuth callback URL | - | For authentication |
+| `JWT_SECRET_KEY` | Secret for JWT signing | - | For authentication |
 | `SSL_ENABLED` | Enable HTTPS | `false` | No |
 | `DOMAIN_NAME` | Your domain name | - | For HTTPS |
 | `SSL_CERT_PATH` | SSL certificate path | - | If SSL enabled |
@@ -196,14 +218,14 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com:8443/sse
 | `MCP_HOST` | Host to bind to | `0.0.0.0` | No |
 | `MCP_PORT` | Port to listen on | `8443` (HTTPS) / `8899` (HTTP) | No |
 
-### API Key Format
+### OAuth Configuration
 
-API keys should be provided in the format: `username:api-key`
-
-Example:
-```bash
-API_KEYS="admin:sk-admin-key-123,user1:sk-user1-key-456"
-```
+Authentication is handled through Google OAuth. Users authenticate with their Google account and receive a JWT token for API access. The JWT token includes:
+- User's Google ID (`sub`)
+- Email address
+- Display name
+- Profile picture URL
+- Token expiration (1 hour)
 
 ## Development
 
@@ -217,13 +239,13 @@ uv sync --all-extras
 uv run pytest
 
 # Format code
-uv run black server.py auth.py
+uv run black server.py oauth.py
 
 # Type checking
-uv run mypy server.py auth.py
+uv run mypy server.py oauth.py
 
 # Lint code
-uv run flake8 server.py auth.py
+uv run flake8 server.py oauth.py
 ```
 
 ### Adding Custom Tools
@@ -265,7 +287,7 @@ docker restart mcp-server-web
 ### Deployment Steps
 
 1. **Configure DNS**: Point your domain to your server's IP
-2. **Set environment variables**: Domain, email, API keys
+2. **Set environment variables**: Domain, email, OAuth credentials
 3. **Run deployment script**: `./scripts/run-with-letsencrypt.sh`
 4. **Verify**: Test HTTPS endpoint and authentication
 
@@ -292,9 +314,10 @@ docker exec mcp-server-web ls -la /etc/letsencrypt/live/
 - Verify Let's Encrypt rate limits aren't exceeded
 
 **Authentication Failures**
-- Check API key format: `username:key`
-- Verify `AUTH_ENABLED=true` in environment
-- Ensure `Authorization: Bearer key` header format
+- Verify Google OAuth credentials are correct
+- Check OAuth redirect URI matches configuration
+- Ensure JWT token hasn't expired (1 hour lifetime)
+- Verify `Authorization: Bearer <jwt-token>` header format
 
 **Connection Issues**
 - Verify Docker container is running: `docker ps`
