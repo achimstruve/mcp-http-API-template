@@ -65,7 +65,6 @@ uv run pytest
   - OAuth Protected Resource Metadata (RFC 8707) 
   - PKCE support (RFC 7636)
   - JWT token generation and validation
-- **generate_token.py**: Manual token generation utility for headless environments
 
 ## Key Configuration
 
@@ -92,7 +91,6 @@ uv run pytest
 - `GOOGLE_CLIENT_SECRET`: Google OAuth Client Secret
 - `OAUTH_REDIRECT_URI`: OAuth callback URL (e.g., https://your-domain.com:8443/callback)
 - `JWT_SECRET_KEY`: Secret key for signing JWT tokens
-- `MCP_AUTH_TOKEN`: Pre-generated JWT token for headless authentication (optional)
 
 ## Web Deployment
 
@@ -104,6 +102,15 @@ uv run pytest
 
 # Server available at http://localhost:8899/sse
 ```
+
+### HTTPS Deployment with Let's Encrypt
+```bash
+# Deploy with automatic SSL certificate generation
+export SSL_EMAIL=admin@your-domain.com
+sudo -E ./scripts/run-with-letsencrypt.sh
+```
+
+The `run-with-letsencrypt.sh` script automatically obtains SSL certificates from Let's Encrypt using certbot and deploys the server with HTTPS enabled. This script handles the complete SSL setup and certificate management for production deployments.
 
 ### GCP Deployment
 ```bash
@@ -133,15 +140,9 @@ curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 ## Authentication
 
 ### OAuth 2.1 with PKCE
-This server implements OAuth 2.1 with PKCE (Proof Key for Code Exchange) for secure authentication:
+This server implements OAuth 2.1 with PKCE (Proof Key for Code Exchange) for secure authentication.
 
-1. **Claude Code Integration**: Add the server and complete OAuth flow when prompted
-2. **Manual Token Generation**: Use `./generate_token.py` for headless environments
-3. **Environment Variable**: Set `MCP_AUTH_TOKEN` for pre-authenticated access
-
-### Authentication Workflows
-
-**Claude Code (Recommended - OAuth 2.1 + PKCE):**
+**Claude Code Integration (OAuth 2.1 + PKCE):**
 ```bash
 # Add MCP server (OAuth flow starts automatically)
 claude mcp add --transport sse my-server https://your-domain.com:8443/sse
@@ -154,17 +155,7 @@ claude mcp add --transport sse my-server https://your-domain.com:8443/sse
 # 5. Exchange authorization code with PKCE verifier
 ```
 
-**Manual Token Generation (for testing/headless):**
-```bash
-# Generate token manually
-uv run python generate_token.py
-
-# Use token with environment variable
-export MCP_AUTH_TOKEN="eyJhbGciOiJIUzI1NiIs..."
-
-# Or set in .env file
-echo "MCP_AUTH_TOKEN=your-jwt-token" >> .env
-```
+**Note**: Browser access is required for authentication. This server does not support headless authentication.
 
 ## OAuth 2.1 Endpoints
 

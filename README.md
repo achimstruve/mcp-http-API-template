@@ -24,6 +24,7 @@ A production-ready FastMCP server template with HTTPS support, authentication, a
 - Python 3.10+
 - Docker
 - A domain name (for HTTPS deployment)
+- Browser access (required for OAuth authentication)
 
 ### 1. Clone and Setup
 
@@ -148,6 +149,8 @@ When you connect, Claude Code will:
 2. Register itself as a dynamic client (RFC 7591)
 3. Open your browser for Google authentication
 4. Complete PKCE flow and store token securely
+
+⚠️ **Note**: Browser access is required for authentication. This server does not support headless authentication.
 
 ### Claude Desktop (Not Supported)
 

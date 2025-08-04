@@ -584,15 +584,10 @@ def extract_bearer_token(authorization: str) -> Optional[str]:
 
 def validate_request(authorization: Optional[str]) -> Optional[Dict[str, Any]]:
     """Validate the authorization header and return user info."""
-    if not authorization:
-        # Check for environment variable fallback
-        env_token = os.getenv("MCP_AUTH_TOKEN")
-        if env_token:
-            return validate_jwt_token(env_token)
-        return None
+    # Check Authorization header for OAuth flow
+    if authorization:
+        token = extract_bearer_token(authorization)
+        if token:
+            return validate_jwt_token(token)
 
-    token = extract_bearer_token(authorization)
-    if not token:
-        return None
-
-    return validate_jwt_token(token)
+    return None
