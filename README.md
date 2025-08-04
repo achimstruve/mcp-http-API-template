@@ -49,6 +49,9 @@ uv sync
 Create a `.env` file:
 
 ```bash
+# Server Configuration
+SERVER_NAME=mcp-template       # Name for the MCP server, Docker image, and container
+
 # OAuth Configuration
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
@@ -61,7 +64,7 @@ DOMAIN_NAME=your-domain.com
 SSL_CERT_PATH=/etc/letsencrypt/live/your-domain.com/fullchain.pem
 SSL_KEY_PATH=/etc/letsencrypt/live/your-domain.com/privkey.pem
 
-# Server Configuration
+# MCP Configuration
 MCP_TRANSPORT=sse
 MCP_HOST=0.0.0.0
 MCP_PORT=8443
@@ -206,6 +209,7 @@ curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
+| `SERVER_NAME` | Name for the MCP server, Docker image, and container | `mcp-template` | No |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID | - | For authentication |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | - | For authentication |
 | `OAUTH_REDIRECT_URI` | OAuth callback URL | - | For authentication |
@@ -271,7 +275,7 @@ def protected_tool() -> str:
 3. Test your tool:
 ```bash
 # Restart server to load changes
-docker restart mcp-server-web
+docker restart <your-server-name>
 
 # Test via MCP client or direct HTTP calls
 ```
@@ -295,13 +299,13 @@ docker restart mcp-server-web
 
 Check server logs:
 ```bash
-docker logs mcp-server-web
+docker logs <your-server-name>
 ```
 
 Monitor certificate renewal:
 ```bash
 # Certificates auto-renew, but you can check status
-docker exec mcp-server-web ls -la /etc/letsencrypt/live/
+docker exec <your-server-name> ls -la /etc/letsencrypt/live/
 ```
 
 ## Troubleshooting
@@ -321,7 +325,7 @@ docker exec mcp-server-web ls -la /etc/letsencrypt/live/
 
 **Connection Issues**
 - Verify Docker container is running: `docker ps`
-- Check server logs: `docker logs mcp-server-web`
+- Check server logs: `docker logs <your-server-name>`
 - Test basic connectivity: `curl https://your-domain.com:8443/sse`
 
 ### Getting Help

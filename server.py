@@ -24,7 +24,8 @@ from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 
 # Create an MCP server
-mcp = FastMCP("SecretsKnower")
+server_name = os.getenv("SERVER_NAME", "mcp-template")
+mcp = FastMCP(server_name)
 
 
 

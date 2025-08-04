@@ -7,6 +7,7 @@ if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
 fi
 
+SERVER_NAME=${SERVER_NAME:-mcp-template}
 DOMAIN_NAME=${DOMAIN_NAME:-"example.com"}
 SSL_EMAIL=${SSL_EMAIL:-"admin@example.com"}
 # OAuth configuration
@@ -25,8 +26,8 @@ sudo mkdir -p /etc/letsencrypt
 sudo mkdir -p /var/lib/letsencrypt
 
 # Stop any existing container
-sudo docker stop mcp-server-web 2>/dev/null || true
-sudo docker rm mcp-server-web 2>/dev/null || true
+sudo docker stop ${SERVER_NAME} 2>/dev/null || true
+sudo docker rm ${SERVER_NAME} 2>/dev/null || true
 
 # Get Let's Encrypt certificate using certbot in a container
 echo "Getting Let's Encrypt certificate..."
@@ -52,11 +53,12 @@ if [ $? -eq 0 ]; then
     # Run the MCP server with SSL enabled
     echo "Starting MCP server with SSL and authentication..."
     sudo docker run -d \
-      --name mcp-server-web \
+      --name ${SERVER_NAME} \
       --restart unless-stopped \
       -p 8443:8443 \
       -v /etc/letsencrypt:/etc/letsencrypt:ro \
       -v /tmp/oauth.py:/app/oauth.py:ro \
+      -e SERVER_NAME="$SERVER_NAME" \
       -e MCP_HOST=0.0.0.0 \
       -e MCP_PORT=8443 \
       -e SSL_ENABLED=true \
@@ -66,7 +68,7 @@ if [ $? -eq 0 ]; then
       -e GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET" \
       -e OAUTH_REDIRECT_URI="$OAUTH_REDIRECT_URI" \
       -e JWT_SECRET_KEY="$JWT_SECRET_KEY" \
-      mcp-server-web:latest
+      ${SERVER_NAME}:latest
     
     echo ""
     echo "=== Deployment Complete! ==="

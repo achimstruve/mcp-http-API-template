@@ -11,16 +11,24 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 # Change to project directory
 cd "$PROJECT_DIR"
 
+# Source .env file if it exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+# Use SERVER_NAME from environment or default to mcp-template
+SERVER_NAME=${SERVER_NAME:-mcp-template}
+
 # Clean up old images before building
 echo "Cleaning up old Docker images..."
-docker rmi mcp-server-web:latest 2>/dev/null || true
+docker rmi ${SERVER_NAME}:latest 2>/dev/null || true
 docker builder prune -f
 
 # Build the Docker image with no cache
 echo "Building MCP server Docker image (no cache)..."
-docker build --no-cache -t mcp-server-web:latest .
+docker build --no-cache -t ${SERVER_NAME}:latest .
 
-echo "Build complete! Image tagged as mcp-server-web:latest"
+echo "Build complete! Image tagged as ${SERVER_NAME}:latest"
 
 # Clean up intermediate images and build cache
 echo "Cleaning up intermediate build layers and cache..."

@@ -72,6 +72,7 @@ uv run pytest
 ## Environment Variables
 
 **Server Configuration:**
+- `SERVER_NAME`: Name for the MCP server, Docker image, and container (default: "mcp-template")
 - `MCP_HOST`: Server host (default: "0.0.0.0")
 - `MCP_PORT`: Server port (default: 8899 HTTP, 8443 HTTPS)
 

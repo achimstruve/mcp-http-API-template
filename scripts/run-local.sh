@@ -11,6 +11,14 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 # Change to project directory
 cd "$PROJECT_DIR"
 
+# Source .env file if it exists to get SERVER_NAME
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | grep SERVER_NAME | xargs)
+fi
+
+# Use SERVER_NAME from environment or default to mcp-template
+SERVER_NAME=${SERVER_NAME:-mcp-template}
+
 # Check if .env file exists
 if [ -f .env ]; then
     echo "Loading environment variables from .env file..."
@@ -27,18 +35,18 @@ if [ "$SSL_ENABLED" = "true" ]; then
     echo "Starting MCP server on https://localhost:8443/sse"
     echo "Note: Ensure SSL certificates are available at /etc/ssl/certs/cert.pem and /etc/ssl/private/key.pem"
     docker run --rm -it \
-        --name mcp-server-web \
+        --name ${SERVER_NAME} \
         -p 8443:8443 \
         -v /etc/ssl:/etc/ssl:ro \
         $ENV_FILE_ARG \
-        mcp-server-web:latest
+        ${SERVER_NAME}:latest
 else
     echo "Starting MCP server on http://localhost:8899/sse"
     docker run --rm -it \
-        --name mcp-server-web \
+        --name ${SERVER_NAME} \
         -p 8899:8899 \
         $ENV_FILE_ARG \
-        mcp-server-web:latest
+        ${SERVER_NAME}:latest
 fi
 
 echo "Server stopped"
