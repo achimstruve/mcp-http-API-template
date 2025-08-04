@@ -4,11 +4,12 @@ A production-ready FastMCP server template with HTTPS support, authentication, a
 
 ## Features
 
-- **🔒 OAuth Authentication**: Google OAuth 2.0 integration for secure authentication
+- **🔒 OAuth 2.1 + PKCE**: Google OAuth 2.1 with PKCE for enhanced security
+- **🔄 Dynamic Client Registration**: RFC 7591 compliant for Claude Code compatibility
 - **🌐 HTTPS Support**: SSL/TLS encryption with Let's Encrypt integration
 - **🐳 Docker Deployment**: Production-ready containerized deployment
 - **⚡ FastMCP Integration**: Built on the modern FastMCP framework
-- **🛡️ Security First**: JWT tokens, input validation, and security headers
+- **🛡️ Security First**: JWT tokens, PKCE validation, and comprehensive OAuth endpoints
 
 ### Example Tools & Resources
 
@@ -135,17 +136,18 @@ def get_my_resource(id: str) -> str:
 
 ### Claude Code (Supported)
 
-Claude Code natively supports SSE transport over HTTPS with OAuth. Add your MCP server:
+Claude Code natively supports SSE transport over HTTPS with OAuth 2.1 + PKCE. Add your MCP server:
 
 ```bash
 # Add the server (OAuth flow will start automatically)
-claude mcp add my-server --transport sse https://your-domain.com:8443/sse
+claude mcp add --transport sse my-server https://your-domain.com:8443/sse
 ```
 
 When you connect, Claude Code will:
-1. Detect OAuth is required
-2. Open your browser for Google authentication
-3. Store the token securely for future connections
+1. Discover OAuth server capabilities
+2. Register itself as a dynamic client (RFC 7591)
+3. Open your browser for Google authentication
+4. Complete PKCE flow and store token securely
 
 ### Claude Desktop (Not Supported)
 
@@ -195,10 +197,11 @@ curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 
 ### Security Features
 
-- **OAuth 2.0 Authentication**: Google OAuth integration with JWT tokens
+- **OAuth 2.1 + PKCE**: Enhanced security with Proof Key for Code Exchange
+- **Dynamic Client Registration**: RFC 7591 compliant client registration
 - **HTTPS Enforcement**: SSL/TLS encryption for all communications
 - **JWT Token Validation**: Short-lived tokens (1 hour) for secure access
-- **PKCE Support**: Protection against authorization code interception
+- **Comprehensive OAuth Endpoints**: Authorization server and protected resource metadata
 - **Input Validation**: Type checking and parameter validation
 - **Error Handling**: Secure error responses without information leakage
 - **Let's Encrypt Integration**: Automatic SSL certificate management
@@ -222,12 +225,18 @@ curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 | `MCP_HOST` | Host to bind to | `0.0.0.0` | No |
 | `MCP_PORT` | Port to listen on | `8443` (HTTPS) / `8899` (HTTP) | No |
 
-### OAuth Configuration
+### OAuth 2.1 + PKCE Configuration
 
-Authentication is handled through Google OAuth. Users authenticate with their Google account and receive a JWT token for API access. The JWT token includes:
+Authentication uses OAuth 2.1 with PKCE for enhanced security. The server provides:
+- **Dynamic Client Registration** (RFC 7591): Automatic client registration
+- **OAuth Authorization Server Metadata** (RFC 8414): Endpoint discovery
+- **OAuth Protected Resource Metadata** (RFC 8707): Resource server information
+- **PKCE Support** (RFC 7636): Protection against code interception attacks
+
+JWT tokens include:
 - User's Google ID (`sub`)
 - Email address
-- Display name
+- Display name  
 - Profile picture URL
 - Token expiration (1 hour)
 
