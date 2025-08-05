@@ -38,13 +38,13 @@ SSL_ENABLED=true uv run python server.py
 ### Code Quality Commands
 ```bash
 # Format code
-uv run black server.py oauth.py
+uv run black server.py oauth.py database.py logging_decorator.py
 
 # Type checking
-uv run mypy server.py oauth.py
+uv run mypy server.py oauth.py database.py logging_decorator.py
 
 # Linting
-uv run flake8 server.py oauth.py
+uv run flake8 server.py oauth.py database.py logging_decorator.py
 
 # Run tests
 uv run pytest
@@ -54,24 +54,33 @@ uv run pytest
 
 **Main components:**
 - **server.py**: Main application with HTTPS/SSE web server and comprehensive OAuth endpoints
-  - Tools: `add(a, b)` and `secret_word()`
+  - Tools: `add(a, b)`, `secret_word()`, and `get_usage_stats()` (all with automatic logging)
   - Resources: `greeting://{name}` dynamic resource
   - OAuth endpoints: `/.well-known/oauth-authorization-server`, `/.well-known/oauth-protected-resource`, `/register`, `/authorize`, `/callback`, `/token`
   - SSE transport for real-time communication with Claude Code
-  - OAuth-aware authentication wrapper
+  - OAuth-aware authentication wrapper with user context propagation
 - **oauth.py**: OAuth 2.1 + PKCE implementation with Google authentication
   - Dynamic Client Registration (RFC 7591)
   - OAuth Authorization Server Metadata (RFC 8414)
   - OAuth Protected Resource Metadata (RFC 8707) 
   - PKCE support (RFC 7636)
   - JWT token generation and validation
+- **database.py**: SQLite database operations for tool usage logging
+  - Async SQLite support with aiosqlite
+  - User tracking and tool usage logging
+  - Database schema initialization
+  - Usage statistics aggregation
+- **logging_decorator.py**: Automatic tool logging decorator
+  - Captures tool execution context, timing, and results
+  - Integrates with OAuth user context
+  - Error handling and rollback support
 
 ## Key Configuration
 
 - **MCP Version**: >=2.3.0 (supports SSE transport)
 - **Python Version**: >=3.10
 - **Package Manager**: uv with dependency locking
-- **Dependencies**: mcp, uvicorn, python-dotenv, authlib, httpx, pyjwt
+- **Dependencies**: mcp, uvicorn, python-dotenv, authlib, httpx, pyjwt, aiosqlite
 
 ## Environment Variables
 
@@ -91,6 +100,10 @@ uv run pytest
 - `GOOGLE_CLIENT_SECRET`: Google OAuth Client Secret
 - `OAUTH_REDIRECT_URI`: OAuth callback URL (e.g., https://your-domain.com:8443/callback)
 - `JWT_SECRET_KEY`: Secret key for signing JWT tokens
+
+**Database Configuration:**
+- `DATABASE_PATH`: SQLite database file path (default: "mcp_server.db")
+- `ENABLE_LOGGING`: Enable/disable tool usage logging (default: "true")
 
 ## Web Deployment
 
@@ -181,3 +194,29 @@ This MCP server is designed for **Claude Code** which natively supports:
 - Automatic token management
 
 Claude Desktop is not supported as it only works with stdio transport.
+
+## Database Logging
+
+The server includes automatic SQLite database logging for tool usage tracking:
+
+**Features:**
+- All MCP tools decorated with `@logged_tool` are automatically tracked
+- Captures OAuth user information, tool arguments, results, and execution time
+- Database operations are async to avoid blocking tool execution
+- Statistics available via `get_usage_stats()` tool
+
+**Database Tables:**
+- `users`: Tracks OAuth users (id, email, name, first/last seen)
+- `tool_usage_logs`: Records every tool call with full context
+
+**Configuration:**
+- Set `DATABASE_PATH` to specify database location
+- Set `ENABLE_LOGGING=false` to disable logging
+- Database is automatically initialized on server startup
+
+**Template Pattern:**
+This database integration serves as a template showing how to:
+- Add persistent storage to MCP servers
+- Track user activity and tool usage
+- Implement async database operations
+- Create reusable decorators for cross-cutting concerns

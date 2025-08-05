@@ -8,10 +8,10 @@ WORKDIR /app
 RUN pip install uv
 
 # Install dependencies directly
-RUN uv pip install --system mcp anyio typing-extensions python-dotenv uvicorn[standard] starlette authlib[httpx] httpx pyjwt itsdangerous
+RUN uv pip install --system mcp anyio typing-extensions python-dotenv uvicorn[standard] starlette authlib[httpx] httpx pyjwt itsdangerous aiosqlite
 
 # Copy the rest of the application
-COPY server.py oauth.py ./
+COPY server.py oauth.py database.py logging_decorator.py ./
 
 # Set environment variables for web deployment
 ENV MCP_TRANSPORT=sse
