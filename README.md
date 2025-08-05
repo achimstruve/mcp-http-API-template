@@ -348,13 +348,28 @@ The template includes SQLite database integration for tracking tool usage:
 
 **Access Database:**
 ```bash
-# View database inside container
-docker exec -it <your-server-name> sqlite3 mcp_server.db
+# Copy database to local machine (if you have sqlite3 installed)
+docker cp <your-server-name>:/app/mcp_server.db ./mcp_server_copy.db
+sqlite3 mcp_server_copy.db
 
-# Example queries
-.tables                    # List all tables
-SELECT * FROM users;       # View users
-SELECT * FROM tool_usage_logs ORDER BY timestamp DESC LIMIT 10;
+# Or use Python inside container to query database
+# View all users:
+docker exec <your-server-name> python -c "
+import sqlite3
+db = sqlite3.connect('mcp_server.db')
+cur = db.cursor()
+for row in cur.execute('SELECT * FROM users'):
+    print(row)
+"
+
+# View recent tool usage:
+docker exec <your-server-name> python -c "
+import sqlite3
+db = sqlite3.connect('mcp_server.db')
+cur = db.cursor()
+for row in cur.execute('SELECT tool_name, user_email, timestamp FROM tool_usage_logs ORDER BY timestamp DESC LIMIT 5'):
+    print(row)
+"
 ```
 
 **Disable Logging:**
