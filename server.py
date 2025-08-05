@@ -25,9 +25,6 @@ from oauth import (
     GOOGLE_CLIENT_ID,
 )
 
-# Import database and logging components
-from database import db_manager
-from logging_decorator import logged_tool, set_user_context, clear_user_context
 from starlette.applications import Starlette
 from starlette.routing import Route, Mount
 from starlette.middleware import Middleware
@@ -38,33 +35,17 @@ server_name = os.getenv("SERVER_NAME", "mcp-template")
 mcp = FastMCP(server_name)
 
 
-# MCP Tools with database logging
+# MCP Tools
 @mcp.tool()
-@logged_tool
 def add(a: int, b: int) -> int:
     """Add two numbers"""
     return a + b
 
 
 @mcp.tool()
-@logged_tool
 def secret_word() -> str:
     """Return the secret word"""
     return "OVPostWebExperts"
-
-
-@mcp.tool()
-@logged_tool
-def get_usage_stats() -> dict:
-    """Get database usage statistics (admin tool)"""
-    import asyncio
-    # Since this is a sync function called from MCP, we need to handle async call
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(db_manager.get_usage_statistics())
-    finally:
-        loop.close()
 
 
 # MCP Resources
@@ -124,16 +105,9 @@ class OAuthWrapper:
 
             # Store user info in scope for downstream use
             scope["user"] = user_info
-            
-            # Set user context for logging decorator
-            set_user_context(user_info)
 
         # Call the wrapped app
-        try:
-            await self.app(scope, receive, send)
-        finally:
-            # Clear user context after request
-            clear_user_context()
+        await self.app(scope, receive, send)
 
 
 # Start the server
@@ -175,15 +149,6 @@ if __name__ == "__main__":
         print("Warning: GOOGLE_CLIENT_ID not configured")
 
     import uvicorn
-    import asyncio
-
-    # Initialize database
-    try:
-        asyncio.run(db_manager.initialize())
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        if os.getenv("ENABLE_LOGGING", "true").lower() == "true":
-            print("Database initialization failed. Set ENABLE_LOGGING=false to disable database logging.")
 
     # Create OAuth routes
     oauth_routes = [

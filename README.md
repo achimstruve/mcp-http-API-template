@@ -10,14 +10,12 @@ A production-ready FastMCP server template with HTTPS support, authentication, a
 - **🐳 Docker Deployment**: Production-ready containerized deployment
 - **⚡ FastMCP Integration**: Built on the modern FastMCP framework
 - **🛡️ Security First**: JWT tokens, PKCE validation, and comprehensive OAuth endpoints
-- **📊 Database Logging**: SQLite integration for tool usage tracking and analytics
 
 ### Example Tools & Resources
 
-- **Addition tool**: Demonstrates basic tool functionality with database logging
-- **Secret word tool**: Shows authenticated tool access with usage tracking
+- **Addition tool**: Demonstrates basic tool functionality
+- **Secret word tool**: Shows authenticated tool access
 - **Dynamic greeting resource**: Example of parametrized resources
-- **Usage statistics tool**: Admin tool to view database usage statistics
 
 ## Quick Start
 
@@ -73,9 +71,6 @@ MCP_TRANSPORT=sse
 MCP_HOST=0.0.0.0
 MCP_PORT=8443
 
-# Database Configuration (optional)
-DATABASE_PATH=mcp_server.db    # SQLite database path
-ENABLE_LOGGING=true             # Enable tool usage logging
 ```
 
 ### 4. Deploy
@@ -185,7 +180,6 @@ curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 # Your MCP client will be able to call tools like:
 # - add(5, 3) -> 8
 # - secret_word() -> "OVPostWebExperts"
-# - get_usage_stats() -> {"total_users": 5, "total_calls": 42, ...}
 # - greeting://John -> "Hello, John!"
 ```
 
@@ -196,8 +190,6 @@ curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 ```
 ├── server.py              # Main MCP server implementation
 ├── oauth.py               # OAuth 2.0 authentication implementation
-├── database.py            # SQLite database operations for usage logging
-├── logging_decorator.py   # Tool logging decorator for automatic tracking
 ├── Dockerfile             # Production container setup
 ├── pyproject.toml         # Python dependencies and config
 ├── .env                   # Environment configuration
@@ -236,8 +228,6 @@ curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 | `MCP_TRANSPORT` | Transport protocol | `sse` | No |
 | `MCP_HOST` | Host to bind to | `0.0.0.0` | No |
 | `MCP_PORT` | Port to listen on | `8443` (HTTPS) / `8899` (HTTP) | No |
-| `DATABASE_PATH` | SQLite database file path | `mcp_server.db` | No |
-| `ENABLE_LOGGING` | Enable tool usage logging | `true` | No |
 
 ### OAuth 2.1 + PKCE Configuration
 
@@ -277,10 +267,9 @@ uv run flake8 server.py oauth.py
 
 ### Adding Custom Tools
 
-1. Define your tool in `server.py` with automatic logging:
+1. Define your tool in `server.py`:
 ```python
 @mcp.tool()
-@logged_tool  # Add this decorator for automatic database logging
 def your_tool_name(param: str) -> str:
     """Tool description for AI agents"""
     # Implement your logic
@@ -332,48 +321,6 @@ Monitor certificate renewal:
 docker exec <your-server-name> ls -la /etc/letsencrypt/live/
 ```
 
-### Database Usage Tracking
-
-The template includes SQLite database integration for tracking tool usage:
-
-**Features:**
-- Automatic logging of all tool calls with user context
-- Tracks execution time, arguments, and results
-- User session tracking with OAuth information
-- Built-in statistics tool for usage analytics
-
-**Database Schema:**
-- `users` table: OAuth user information and session tracking
-- `tool_usage_logs` table: Detailed tool execution logs
-
-**Access Database:**
-```bash
-# Copy database to local machine (if you have sqlite3 installed)
-docker cp <your-server-name>:/app/mcp_server.db ./mcp_server_copy.db
-sqlite3 mcp_server_copy.db
-
-# Or use Python inside container to query database
-# View all users:
-docker exec <your-server-name> python -c "
-import sqlite3
-db = sqlite3.connect('mcp_server.db')
-cur = db.cursor()
-for row in cur.execute('SELECT * FROM users'):
-    print(row)
-"
-
-# View recent tool usage:
-docker exec <your-server-name> python -c "
-import sqlite3
-db = sqlite3.connect('mcp_server.db')
-cur = db.cursor()
-for row in cur.execute('SELECT tool_name, user_email, timestamp FROM tool_usage_logs ORDER BY timestamp DESC LIMIT 5'):
-    print(row)
-"
-```
-
-**Disable Logging:**
-Set `ENABLE_LOGGING=false` in your `.env` file to disable database logging.
 
 ## Troubleshooting
 
