@@ -363,13 +363,18 @@ docker exec <your-server-name> ls -la /etc/letsencrypt/live/
 ### Common Issues
 
 **TypeError: 'function' object is not subscriptable (Windows/Claude Desktop)**
-- This error occurs with incompatible versions of `anyio`
-- Solution: Update dependencies:
+- This error occurs with incompatible versions of `anyio` on Windows
+- **Solution 1 (Recommended)**: Use the Windows batch script:
+  - Use `run_local.bat` in your Claude Desktop configuration
+  - The batch script handles package versions automatically
+- **Solution 2**: Manual package update:
   ```bash
-  pip install --upgrade "mcp>=1.12.0" "anyio>=4.4.0"
-  # Or with uv:
-  uv sync
+  cd "your-project-directory"
+  python -m pip install --upgrade pip
+  python -m pip install --upgrade "mcp>=1.12.0" "anyio>=4.4.0" python-dotenv
   ```
+- **Solution 3**: Use Python script directly:
+  - Use `run_local.py` instead of `server.py` in configuration
 - Ensure Python 3.10+ is installed
 - On Windows, use forward slashes (/) in paths or escape backslashes (\\\\)
 
@@ -441,6 +446,37 @@ LOCAL_MODE=true uv run python server.py
 ```
 
 4. **Configure Claude Desktop** by adding to your `claude_desktop_config.json`:
+
+**Windows Configuration (using batch script - recommended):**
+```json
+{
+  "mcpServers": {
+    "my-local-server": {
+      "command": "cmd",
+      "args": ["/c", "C:/Users/achim/Desktop/Achim/Programmieren/AI/mcp-https-OAuth-database-template/run_local.bat"],
+      "cwd": "C:/Users/achim/Desktop/Achim/Programmieren/AI/mcp-https-OAuth-database-template"
+    }
+  }
+}
+```
+
+**Alternative Windows Configuration (direct Python):**
+```json
+{
+  "mcpServers": {
+    "my-local-server": {
+      "command": "python",
+      "args": ["run_local.py"],
+      "cwd": "C:/Users/achim/Desktop/Achim/Programmieren/AI/mcp-https-OAuth-database-template",
+      "env": {
+        "LOCAL_MODE": "true"
+      }
+    }
+  }
+}
+```
+
+**Linux/Mac Configuration:**
 ```json
 {
   "mcpServers": {
