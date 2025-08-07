@@ -6,9 +6,15 @@ REM All diagnostic output goes to stderr to avoid interfering with MCP JSON prot
 REM Set environment variable
 set LOCAL_MODE=true
 
+REM Get the directory where this batch file is located
+set SCRIPT_DIR=%~dp0
+cd /d "%SCRIPT_DIR%"
+
 REM Check if we're in the right directory
 if not exist "server.py" (
-    echo ERROR: server.py not found in current directory >&2
+    echo ERROR: server.py not found in directory %SCRIPT_DIR% >&2
+    echo Current directory: %CD% >&2
+    dir /b *.py >&2
     exit /b 1
 )
 

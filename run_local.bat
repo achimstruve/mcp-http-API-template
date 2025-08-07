@@ -8,10 +8,14 @@ echo Starting MCP server in LOCAL_MODE for Windows... >&2
 REM Set environment variable
 set LOCAL_MODE=true
 
+REM Get the directory where this batch file is located
+set SCRIPT_DIR=%~dp0
+cd /d "%SCRIPT_DIR%"
+
 REM Check if we're in the right directory
 if not exist "server.py" (
-    echo ERROR: server.py not found in current directory >&2
-    echo Please run this script from the project root directory >&2
+    echo ERROR: server.py not found in directory %SCRIPT_DIR% >&2
+    echo Current directory: %CD% >&2
     exit /b 1
 )
 
