@@ -362,6 +362,17 @@ docker exec <your-server-name> ls -la /etc/letsencrypt/live/
 
 ### Common Issues
 
+**TypeError: 'function' object is not subscriptable (Windows/Claude Desktop)**
+- This error occurs with incompatible versions of `anyio`
+- Solution: Update dependencies:
+  ```bash
+  pip install --upgrade "mcp>=1.12.0" "anyio>=4.4.0"
+  # Or with uv:
+  uv sync
+  ```
+- Ensure Python 3.10+ is installed
+- On Windows, use forward slashes (/) in paths or escape backslashes (\\\\)
+
 **SSL Certificate Errors**
 - Ensure domain points to your server IP
 - Check firewall allows ports 80 and 8443
@@ -377,6 +388,7 @@ docker exec <your-server-name> ls -la /etc/letsencrypt/live/
 - Verify Docker container is running: `docker ps`
 - Check server logs: `docker logs <your-server-name>`
 - Test basic connectivity: `curl https://your-domain.com:8443/sse`
+- For Claude Desktop: Check the server runs without errors: `LOCAL_MODE=true uv run python server.py`
 
 ### Getting Help
 
@@ -405,17 +417,30 @@ For local development with Claude Desktop (no OAuth, no HTTPS), you can enable *
 
 ### Setup for Claude Desktop
 
-1. **Enable local mode** in your `.env` file:
+1. **Install dependencies** (important for Windows users):
+```bash
+# Using uv (recommended)
+uv sync
+
+# Or using pip
+pip install -r requirements.txt
+
+# For Windows users with older Python/pip versions:
+pip install --upgrade pip
+pip install "mcp>=1.12.0" "anyio>=4.4.0"
+```
+
+2. **Enable local mode** in your `.env` file:
 ```bash
 LOCAL_MODE=true
 ```
 
-2. **Run the server locally**:
+3. **Run the server locally** (for testing):
 ```bash
 LOCAL_MODE=true uv run python server.py
 ```
 
-3. **Configure Claude Desktop** by adding to your `claude_desktop_config.json`:
+4. **Configure Claude Desktop** by adding to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
