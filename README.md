@@ -1,10 +1,13 @@
 # MCP Server Template
 
-A production-ready FastMCP server template with HTTPS support, authentication, and Docker deployment. This template provides a foundation for building secure, web-accessible MCP servers that can be used by Claude Code and other AI agents over HTTP/HTTPS with SSE transport.
+A production-ready FastMCP server template with dual-mode support: secure web deployment with HTTPS and OAuth for Claude Code, or local development with stdio transport for Claude Desktop. This template provides a foundation for building MCP servers that work in both local and production environments.
 
 ## Features
 
-- **🔒 OAuth 2.1 + PKCE**: Google OAuth 2.1 with PKCE for enhanced security
+- **🔄 Dual Mode Support**: Local development (stdio) + Production deployment (HTTPS/OAuth)
+- **🖥️ Claude Desktop Compatible**: Local mode with stdio transport for desktop development
+- **🌐 Claude Code Ready**: Web mode with SSE transport for production use
+- **🔒 OAuth 2.1 + PKCE**: Google OAuth 2.1 with PKCE for enhanced security (web mode)
 - **🔄 Dynamic Client Registration**: RFC 7591 compliant for Claude Code compatibility
 - **🌐 HTTPS Support**: SSL/TLS encryption with Let's Encrypt integration
 - **🐳 Docker Deployment**: Production-ready containerized deployment
@@ -21,6 +24,11 @@ A production-ready FastMCP server template with HTTPS support, authentication, a
 
 ### Prerequisites
 
+**For Local Development (Claude Desktop):**
+- Python 3.10+
+- Claude Desktop
+
+**For Web Deployment (Claude Code):**
 - Python 3.10+
 - Docker
 - A domain name (for HTTPS deployment)
@@ -136,9 +144,40 @@ def get_my_resource(id: str) -> str:
 
 ## Client Setup
 
-### Claude Code (Supported)
+### Claude Desktop (Local Mode)
 
-Claude Code natively supports SSE transport over HTTPS with OAuth 2.1 + PKCE. Add your MCP server:
+For local development, configure Claude Desktop with LOCAL_MODE:
+
+1. **Set up your `.env` file**:
+```bash
+LOCAL_MODE=true
+```
+
+2. **Add to your Claude Desktop configuration** (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "my-local-server": {
+      "command": "uv",
+      "args": ["run", "python", "/path/to/your/server.py"],
+      "env": {
+        "LOCAL_MODE": "true"
+      }
+    }
+  }
+}
+```
+
+3. **Start the server**:
+```bash
+LOCAL_MODE=true uv run python server.py
+```
+
+✅ **Benefits**: No OAuth setup required, immediate local development, stdio transport
+
+### Claude Code (Web Mode)
+
+For production deployment, Claude Code natively supports SSE transport over HTTPS with OAuth 2.1 + PKCE:
 
 ```bash
 # Add the server (OAuth flow will start automatically)
@@ -152,10 +191,6 @@ When you connect, Claude Code will:
 4. Complete PKCE flow and store token securely
 
 ⚠️ **Note**: Browser access is required for authentication. This server does not support headless authentication.
-
-### Claude Desktop (Not Supported)
-
-⚠️ **Note**: Claude Desktop only supports stdio transport and cannot connect to HTTP/HTTPS MCP servers. Use Claude Code instead for web-based MCP servers.
 
 ### Other MCP Clients
 
@@ -217,10 +252,11 @@ curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `SERVER_NAME` | Name for the MCP server, Docker image, and container | `mcp-template` | No |
-| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | - | For authentication |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | - | For authentication |
-| `OAUTH_REDIRECT_URI` | OAuth callback URL | - | For authentication |
-| `JWT_SECRET_KEY` | Secret for JWT signing | - | For authentication |
+| `LOCAL_MODE` | Enable local mode: stdio transport, no OAuth, no HTTPS | `false` | No |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | - | For web mode |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | - | For web mode |
+| `OAUTH_REDIRECT_URI` | OAuth callback URL | - | For web mode |
+| `JWT_SECRET_KEY` | Secret for JWT signing | - | For web mode |
 | `SSL_ENABLED` | Enable HTTPS | `false` | No |
 | `DOMAIN_NAME` | Your domain name | - | For HTTPS |
 | `SSL_CERT_PATH` | SSL certificate path | - | If SSL enabled |
@@ -362,3 +398,50 @@ MIT License - see [LICENSE](LICENSE) file for details.
 5. Submit a pull request
 
 This template provides a solid foundation for building production-ready MCP servers. Customize it according to your specific needs and use cases.
+
+## Local Development Mode
+
+For local development with Claude Desktop (no OAuth, no HTTPS), you can enable **LOCAL_MODE**:
+
+### Setup for Claude Desktop
+
+1. **Enable local mode** in your `.env` file:
+```bash
+LOCAL_MODE=true
+```
+
+2. **Run the server locally**:
+```bash
+LOCAL_MODE=true uv run python server.py
+```
+
+3. **Configure Claude Desktop** by adding to your `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "my-local-server": {
+      "command": "uv",
+      "args": ["run", "python", "/path/to/your/server.py"],
+      "env": {
+        "LOCAL_MODE": "true"
+      }
+    }
+  }
+}
+```
+
+### Local Mode Features
+
+When `LOCAL_MODE=true`:
+- ✅ **stdio transport** (compatible with Claude Desktop)
+- ✅ **No authentication required** (simplified for local development)
+- ✅ **No HTTPS/SSL** (runs locally only)
+- ✅ **All MCP tools and resources available**
+- ❌ **No web access** (Claude Code cannot connect in this mode)
+
+### Switching Modes
+
+- **Local Mode** (`LOCAL_MODE=true`): For Claude Desktop, local development
+- **Web Mode** (`LOCAL_MODE=false`): For Claude Code, production deployment with OAuth and HTTPS
+
+This flexibility allows you to develop locally with Claude Desktop and deploy to production with Claude Code using the same codebase.

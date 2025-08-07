@@ -19,9 +19,17 @@ uv sync --all-extras
 
 ### Running the Server
 
-**Local development (HTTP):**
+**Local development (Claude Desktop - stdio):**
 ```bash
-# Run in HTTP mode locally
+# Run in local mode with stdio transport (no OAuth, no HTTPS)
+LOCAL_MODE=true uv run python server.py
+
+# This mode is for Claude Desktop integration
+```
+
+**Local development (Claude Code - HTTP):**
+```bash
+# Run in HTTP mode locally for web clients
 uv run python server.py
 
 # Access at http://localhost:8899/sse
@@ -77,6 +85,7 @@ uv run pytest
 
 **Server Configuration:**
 - `SERVER_NAME`: Name for the MCP server, Docker image, and container (default: "mcp-template")
+- `LOCAL_MODE`: Enable local mode with stdio transport, no OAuth, no HTTPS (default: false)
 - `MCP_HOST`: Server host (default: "0.0.0.0")
 - `MCP_PORT`: Server port (default: 8899 HTTP, 8443 HTTPS)
 
@@ -175,10 +184,30 @@ claude mcp add --transport sse my-server https://your-domain.com:8443/sse
 
 ## Client Compatibility
 
-This MCP server is designed for **Claude Code** which natively supports:
+**Claude Code (Web Mode):**
+This MCP server supports **Claude Code** which natively supports:
 - SSE transport over HTTPS
 - OAuth 2.1 with PKCE
 - Dynamic client registration
 - Automatic token management
 
-Claude Desktop is not supported as it only works with stdio transport.
+**Claude Desktop (Local Mode):**
+When `LOCAL_MODE=true`, this server supports **Claude Desktop** with:
+- stdio transport
+- No authentication required
+- Local development only
+
+To use with Claude Desktop, add to your claude_desktop_config.json:
+```json
+{
+  "mcpServers": {
+    "my-local-server": {
+      "command": "uv",
+      "args": ["run", "python", "/path/to/your/server.py"],
+      "env": {
+        "LOCAL_MODE": "true"
+      }
+    }
+  }
+}
+```

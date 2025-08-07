@@ -13,22 +13,28 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Import OAuth authentication
-from oauth import (
-    oauth_metadata,
-    oauth_protected_resource,
-    register,
-    authorize,
-    callback,
-    token,
-    validate_request,
-    GOOGLE_CLIENT_ID,
-)
+# Local mode configuration
+LOCAL_MODE = os.getenv("LOCAL_MODE", "false").lower() == "true"
 
-from starlette.applications import Starlette
-from starlette.routing import Route, Mount
-from starlette.middleware import Middleware
-from starlette.middleware.sessions import SessionMiddleware
+# Import OAuth authentication (only if not in local mode)
+if not LOCAL_MODE:
+    from oauth import (
+        oauth_metadata,
+        oauth_protected_resource,
+        register,
+        authorize,
+        callback,
+        token,
+        validate_request,
+        GOOGLE_CLIENT_ID,
+    )
+    from starlette.applications import Starlette
+    from starlette.routing import Route, Mount
+    from starlette.middleware import Middleware
+    from starlette.middleware.sessions import SessionMiddleware
+else:
+    # For local mode, we don't need OAuth
+    GOOGLE_CLIENT_ID = None
 
 # Create an MCP server
 server_name = os.getenv("SERVER_NAME", "mcp-template")
@@ -112,86 +118,97 @@ class OAuthWrapper:
 
 # Start the server
 if __name__ == "__main__":
-    # Configuration
-    host = os.getenv("MCP_HOST", "0.0.0.0")
-    ssl_enabled = os.getenv("SSL_ENABLED", "false").lower() == "true"
-    default_port = "8443" if ssl_enabled else "8899"
-    port = int(os.getenv("MCP_PORT", default_port))
-    auth_enabled = bool(GOOGLE_CLIENT_ID)
-
-    # SSL configuration
-    ssl_cert_path = os.getenv("SSL_CERT_PATH", "/etc/ssl/certs/cert.pem")
-    ssl_key_path = os.getenv("SSL_KEY_PATH", "/etc/ssl/private/key.pem")
-
-    # Check SSL certificates
-    if ssl_enabled:
-        import os.path
-
-        if not (os.path.exists(ssl_cert_path) and os.path.exists(ssl_key_path)):
-            print(
-                f"Warning: SSL enabled but certificates not found. Falling back to HTTP."
-            )
-            print(f"  Cert path: {ssl_cert_path}")
-            print(f"  Key path: {ssl_key_path}")
-            ssl_enabled = False
-
-    # Start server
-    protocol = "https" if ssl_enabled else "http"
-    print(f"Starting MCP server on {protocol}://{host}:{port}/sse")
-
-    if auth_enabled:
-        print("Authentication: ENABLED (OAuth with Google)")
-        print(
-            f"OAuth redirect URI: {os.getenv('OAUTH_REDIRECT_URI', 'Not configured')}"
-        )
-    else:
+    if LOCAL_MODE:
+        # Local mode: Use stdio transport, no authentication, no HTTPS
+        print("Starting MCP server in LOCAL MODE")
+        print("Transport: stdio (for Claude Desktop)")
         print("Authentication: DISABLED")
-        print("Warning: GOOGLE_CLIENT_ID not configured")
+        print("HTTPS: DISABLED")
+        
+        # Run with stdio transport
+        mcp.run()
+    else:
+        # Web mode: Use SSE transport with OAuth and optional HTTPS
+        # Configuration
+        host = os.getenv("MCP_HOST", "0.0.0.0")
+        ssl_enabled = os.getenv("SSL_ENABLED", "false").lower() == "true"
+        default_port = "8443" if ssl_enabled else "8899"
+        port = int(os.getenv("MCP_PORT", default_port))
+        auth_enabled = bool(GOOGLE_CLIENT_ID)
 
-    import uvicorn
+        # SSL configuration
+        ssl_cert_path = os.getenv("SSL_CERT_PATH", "/etc/ssl/certs/cert.pem")
+        ssl_key_path = os.getenv("SSL_KEY_PATH", "/etc/ssl/private/key.pem")
 
-    # Create OAuth routes
-    oauth_routes = [
-        Route(
-            "/.well-known/oauth-authorization-server", oauth_metadata, methods=["GET"]
-        ),
-        Route(
-            "/.well-known/oauth-protected-resource",
-            oauth_protected_resource,
-            methods=["GET"],
-        ),
-        Route("/register", register, methods=["GET", "POST"]),
-        Route("/authorize", authorize, methods=["GET"]),
-        Route("/callback", callback, methods=["GET"]),
-        Route("/token", token, methods=["POST"]),
-    ]
+        # Check SSL certificates
+        if ssl_enabled:
+            import os.path
 
-    # Create main app with OAuth endpoints
-    mcp_app = mcp.sse_app()
+            if not (os.path.exists(ssl_cert_path) and os.path.exists(ssl_key_path)):
+                print(
+                    f"Warning: SSL enabled but certificates not found. Falling back to HTTP."
+                )
+                print(f"  Cert path: {ssl_cert_path}")
+                print(f"  Key path: {ssl_key_path}")
+                ssl_enabled = False
 
-    # Combine OAuth routes with MCP app
-    routes = oauth_routes + [Mount("/", app=mcp_app)]
+        # Start server
+        protocol = "https" if ssl_enabled else "http"
+        print(f"Starting MCP server on {protocol}://{host}:{port}/sse")
 
-    # Create Starlette app with session middleware
-    app = Starlette(
-        routes=routes,
-        middleware=[
-            Middleware(
-                SessionMiddleware, secret_key=os.getenv("JWT_SECRET_KEY", "change-this")
+        if auth_enabled:
+            print("Authentication: ENABLED (OAuth with Google)")
+            print(
+                f"OAuth redirect URI: {os.getenv('OAUTH_REDIRECT_URI', 'Not configured')}"
             )
-        ],
-    )
+        else:
+            print("Authentication: DISABLED")
+            print("Warning: GOOGLE_CLIENT_ID not configured")
 
-    # Wrap with OAuth authentication if enabled
-    if auth_enabled:
-        app = OAuthWrapper(app)
+        import uvicorn
 
-    # Configure SSL
-    ssl_config = {}
-    if ssl_enabled:
-        ssl_config = {
-            "ssl_certfile": ssl_cert_path,
-            "ssl_keyfile": ssl_key_path,
-        }
+        # Create OAuth routes
+        oauth_routes = [
+            Route(
+                "/.well-known/oauth-authorization-server", oauth_metadata, methods=["GET"]
+            ),
+            Route(
+                "/.well-known/oauth-protected-resource",
+                oauth_protected_resource,
+                methods=["GET"],
+            ),
+            Route("/register", register, methods=["GET", "POST"]),
+            Route("/authorize", authorize, methods=["GET"]),
+            Route("/callback", callback, methods=["GET"]),
+            Route("/token", token, methods=["POST"]),
+        ]
 
-    uvicorn.run(app, host=host, port=port, log_level="info", **ssl_config)
+        # Create main app with OAuth endpoints
+        mcp_app = mcp.sse_app()
+
+        # Combine OAuth routes with MCP app
+        routes = oauth_routes + [Mount("/", app=mcp_app)]
+
+        # Create Starlette app with session middleware
+        app = Starlette(
+            routes=routes,
+            middleware=[
+                Middleware(
+                    SessionMiddleware, secret_key=os.getenv("JWT_SECRET_KEY", "change-this")
+                )
+            ],
+        )
+
+        # Wrap with OAuth authentication if enabled
+        if auth_enabled:
+            app = OAuthWrapper(app)
+
+        # Configure SSL
+        ssl_config = {}
+        if ssl_enabled:
+            ssl_config = {
+                "ssl_certfile": ssl_cert_path,
+                "ssl_keyfile": ssl_key_path,
+            }
+
+        uvicorn.run(app, host=host, port=port, log_level="info", **ssl_config)
