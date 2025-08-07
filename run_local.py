@@ -27,17 +27,17 @@ def check_and_install_packages():
         
         # Check if versions are adequate
         if mcp_major < 1 or (mcp_major == 1 and mcp_minor < 12):
-            print(f"mcp version {mcp_version} is too old, need >= 1.12.0", file=sys.stderr)
+            print(f"ERROR: mcp version {mcp_version} is too old, need >= 1.12.0", file=sys.stderr)
             return False
             
         if anyio_major < 4 or (anyio_major == 4 and anyio_minor < 4):
-            print(f"anyio version {anyio_version} is too old, need >= 4.4.0", file=sys.stderr)
+            print(f"ERROR: anyio version {anyio_version} is too old, need >= 4.4.0", file=sys.stderr)
             return False
             
         return True
         
     except ImportError:
-        print("Required packages not found", file=sys.stderr)
+        print("ERROR: Required packages not found", file=sys.stderr)
         return False
 
 def main():
@@ -58,11 +58,11 @@ def main():
         print("Authentication: DISABLED", file=sys.stderr)
         print("HTTPS: DISABLED", file=sys.stderr)
         
-        # Run the server
+        # Run the server (this will handle stdout/stdin for MCP protocol)
         mcp.run()
         
     except Exception as e:
-        print(f"Error running server: {e}", file=sys.stderr)
+        print(f"ERROR: Server failed to start: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)

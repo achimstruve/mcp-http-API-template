@@ -447,7 +447,20 @@ LOCAL_MODE=true uv run python server.py
 
 4. **Configure Claude Desktop** by adding to your `claude_desktop_config.json`:
 
-**Windows Configuration (using batch script - recommended):**
+**Windows Configuration Option 1 (simple batch - recommended):**
+```json
+{
+  "mcpServers": {
+    "my-local-server": {
+      "command": "cmd",
+      "args": ["/c", "C:/Users/achim/Desktop/Achim/Programmieren/AI/mcp-https-OAuth-database-template/run_local_simple.bat"],
+      "cwd": "C:/Users/achim/Desktop/Achim/Programmieren/AI/mcp-https-OAuth-database-template"
+    }
+  }
+}
+```
+
+**Windows Configuration Option 2 (with auto-install):**
 ```json
 {
   "mcpServers": {

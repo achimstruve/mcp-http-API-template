@@ -1,48 +1,43 @@
 @echo off
 REM Windows batch script to run MCP server in LOCAL_MODE
 REM This ensures correct package versions and environment
+REM All output goes to stderr to avoid interfering with MCP JSON protocol
 
-echo Starting MCP server in LOCAL_MODE for Windows...
+echo Starting MCP server in LOCAL_MODE for Windows... >&2
 
 REM Set environment variable
 set LOCAL_MODE=true
 
 REM Check if we're in the right directory
 if not exist "server.py" (
-    echo ERROR: server.py not found in current directory
-    echo Please run this script from the project root directory
-    pause
+    echo ERROR: server.py not found in current directory >&2
+    echo Please run this script from the project root directory >&2
     exit /b 1
 )
 
 REM Try to use uv if available, otherwise fall back to python
 where uv >nul 2>&1
 if %ERRORLEVEL% == 0 (
-    echo Using uv...
-    uv sync
+    echo Using uv... >&2
+    uv sync >nul 2>&1
     if %ERRORLEVEL% neq 0 (
-        echo ERROR: uv sync failed
-        pause
+        echo ERROR: uv sync failed >&2
         exit /b 1
     )
     uv run python server.py
 ) else (
-    echo uv not found, using python directly...
-    echo Installing/upgrading required packages...
-    python -m pip install --upgrade pip
-    python -m pip install --upgrade "mcp>=1.12.0" "anyio>=4.4.0" python-dotenv
+    echo uv not found, using python directly... >&2
+    echo Installing/upgrading required packages... >&2
+    python -m pip install --upgrade pip >nul 2>&1
+    python -m pip install --upgrade "mcp>=1.12.0" "anyio>=4.4.0" python-dotenv >nul 2>&1
     if %ERRORLEVEL% neq 0 (
-        echo ERROR: Package installation failed
-        pause
+        echo ERROR: Package installation failed >&2
         exit /b 1
     )
     python server.py
 )
 
 if %ERRORLEVEL% neq 0 (
-    echo ERROR: Server failed to start
-    pause
+    echo ERROR: Server failed to start >&2
     exit /b 1
 )
-
-pause
