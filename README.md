@@ -146,31 +146,48 @@ def get_my_resource(id: str) -> str:
 
 ### Claude Desktop (Local Mode)
 
-For local development, configure Claude Desktop with LOCAL_MODE:
+For local development with Claude Desktop (no OAuth required):
 
-1. **Set up your `.env` file**:
+#### Quick Setup (Recommended)
+
+1. **Install dependencies**:
 ```bash
-LOCAL_MODE=true
+# Using uv (recommended)
+uv sync
+
+# Or using pip (Windows users)
+pip install --upgrade pip
+pip install "mcp>=1.12.0" "anyio>=4.4.0" python-dotenv
 ```
 
-2. **Add to your Claude Desktop configuration** (`claude_desktop_config.json`):
+2. **Configure Claude Desktop** (`claude_desktop_config.json`):
+
+**Windows (Recommended):**
+```json
+{
+  "mcpServers": {
+    "my-local-server": {
+      "command": "cmd",
+      "args": ["/c", "C:/path/to/your/project/run_local_simple.bat"],
+      "cwd": "C:/path/to/your/project"
+    }
+  }
+}
+```
+
+**Linux/Mac:**
 ```json
 {
   "mcpServers": {
     "my-local-server": {
       "command": "uv",
-      "args": ["run", "python", "/path/to/your/server.py"],
+      "args": ["run", "python", "/path/to/your/project/server.py"],
       "env": {
         "LOCAL_MODE": "true"
       }
     }
   }
 }
-```
-
-3. **Start the server**:
-```bash
-LOCAL_MODE=true uv run python server.py
 ```
 
 ✅ **Benefits**: No OAuth setup required, immediate local development, stdio transport
@@ -223,15 +240,20 @@ curl -H "Authorization: Bearer your-jwt-token" https://your-domain.com:8443/sse
 ### Files Structure
 
 ```
-├── server.py              # Main MCP server implementation
-├── oauth.py               # OAuth 2.0 authentication implementation
-├── Dockerfile             # Production container setup
-├── pyproject.toml         # Python dependencies and config
+├── server.py              # Main MCP server implementation (dual-mode support)
+├── oauth.py               # OAuth 2.0 authentication implementation (web mode)
+├── run_local.py           # Python script for LOCAL_MODE with version checking
+├── run_local.bat          # Windows batch script with auto-install
+├── run_local_simple.bat   # Simple Windows batch script (recommended)
+├── requirements.txt       # Python dependencies for pip users
+├── pyproject.toml         # Python dependencies and project config
 ├── .env                   # Environment configuration
+├── .env.example           # Environment configuration template
+├── Dockerfile             # Production container setup
 └── scripts/
     ├── build.sh           # Docker build script
     ├── run-local.sh       # Local development script
-    └── run-with-letsencrypt.sh  # Production deployment
+    └── run-with-letsencrypt.sh  # Production deployment with SSL
 ```
 
 ### Security Features
@@ -364,19 +386,26 @@ docker exec <your-server-name> ls -la /etc/letsencrypt/live/
 
 **TypeError: 'function' object is not subscriptable (Windows/Claude Desktop)**
 - This error occurs with incompatible versions of `anyio` on Windows
-- **Solution 1 (Recommended)**: Use the Windows batch script:
-  - Use `run_local.bat` in your Claude Desktop configuration
-  - The batch script handles package versions automatically
-- **Solution 2**: Manual package update:
+- **Solution (Recommended)**: Use the simple Windows batch script:
+  ```json
+  {
+    "mcpServers": {
+      "my-local-server": {
+        "command": "cmd",
+        "args": ["/c", "C:/path/to/your/project/run_local_simple.bat"],
+        "cwd": "C:/path/to/your/project"
+      }
+    }
+  }
+  ```
+- **Alternative**: Manual package update:
   ```bash
   cd "your-project-directory"
   python -m pip install --upgrade pip
   python -m pip install --upgrade "mcp>=1.12.0" "anyio>=4.4.0" python-dotenv
   ```
-- **Solution 3**: Use Python script directly:
-  - Use `run_local.py` instead of `server.py` in configuration
 - Ensure Python 3.10+ is installed
-- On Windows, use forward slashes (/) in paths or escape backslashes (\\\\)
+- On Windows, use forward slashes (/) in paths
 
 **SSL Certificate Errors**
 - Ensure domain points to your server IP
@@ -416,106 +445,15 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 This template provides a solid foundation for building production-ready MCP servers. Customize it according to your specific needs and use cases.
 
-## Local Development Mode
+## Mode Comparison
 
-For local development with Claude Desktop (no OAuth, no HTTPS), you can enable **LOCAL_MODE**:
+| Feature | Local Mode (Claude Desktop) | Web Mode (Claude Code) |
+|---------|----------------------------|------------------------|
+| **Transport** | stdio | SSE over HTTPS |
+| **Authentication** | None | OAuth 2.1 + PKCE |
+| **SSL/TLS** | No | Yes |
+| **Client** | Claude Desktop | Claude Code |
+| **Use Case** | Local development | Production deployment |
+| **Setup Complexity** | Minimal | Full OAuth setup required |
 
-### Setup for Claude Desktop
-
-1. **Install dependencies** (important for Windows users):
-```bash
-# Using uv (recommended)
-uv sync
-
-# Or using pip
-pip install -r requirements.txt
-
-# For Windows users with older Python/pip versions:
-pip install --upgrade pip
-pip install "mcp>=1.12.0" "anyio>=4.4.0"
-```
-
-2. **Enable local mode** in your `.env` file:
-```bash
-LOCAL_MODE=true
-```
-
-3. **Run the server locally** (for testing):
-```bash
-LOCAL_MODE=true uv run python server.py
-```
-
-4. **Configure Claude Desktop** by adding to your `claude_desktop_config.json`:
-
-**Windows Configuration Option 1 (simple batch - recommended):**
-```json
-{
-  "mcpServers": {
-    "my-local-server": {
-      "command": "cmd",
-      "args": ["/c", "C:/Users/achim/Desktop/Achim/Programmieren/AI/mcp-https-OAuth-database-template/run_local_simple.bat"],
-      "cwd": "C:/Users/achim/Desktop/Achim/Programmieren/AI/mcp-https-OAuth-database-template"
-    }
-  }
-}
-```
-
-**Windows Configuration Option 2 (with auto-install):**
-```json
-{
-  "mcpServers": {
-    "my-local-server": {
-      "command": "cmd",
-      "args": ["/c", "C:/Users/achim/Desktop/Achim/Programmieren/AI/mcp-https-OAuth-database-template/run_local.bat"],
-      "cwd": "C:/Users/achim/Desktop/Achim/Programmieren/AI/mcp-https-OAuth-database-template"
-    }
-  }
-}
-```
-
-**Alternative Windows Configuration (direct Python):**
-```json
-{
-  "mcpServers": {
-    "my-local-server": {
-      "command": "python",
-      "args": ["run_local.py"],
-      "cwd": "C:/Users/achim/Desktop/Achim/Programmieren/AI/mcp-https-OAuth-database-template",
-      "env": {
-        "LOCAL_MODE": "true"
-      }
-    }
-  }
-}
-```
-
-**Linux/Mac Configuration:**
-```json
-{
-  "mcpServers": {
-    "my-local-server": {
-      "command": "uv",
-      "args": ["run", "python", "/path/to/your/server.py"],
-      "env": {
-        "LOCAL_MODE": "true"
-      }
-    }
-  }
-}
-```
-
-### Local Mode Features
-
-When `LOCAL_MODE=true`:
-- ✅ **stdio transport** (compatible with Claude Desktop)
-- ✅ **No authentication required** (simplified for local development)
-- ✅ **No HTTPS/SSL** (runs locally only)
-- ✅ **All MCP tools and resources available**
-- ❌ **No web access** (Claude Code cannot connect in this mode)
-
-### Switching Modes
-
-- **Local Mode** (`LOCAL_MODE=true`): For Claude Desktop, local development
-- **Web Mode** (`LOCAL_MODE=false`): For Claude Code, production deployment with OAuth and HTTPS
-
-This flexibility allows you to develop locally with Claude Desktop and deploy to production with Claude Code using the same codebase.
+Switch between modes by setting `LOCAL_MODE=true` (local) or `LOCAL_MODE=false` (web) in your environment.
